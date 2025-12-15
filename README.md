@@ -6,6 +6,12 @@ Developed using Go and the Charm Bracelet's Bubble Tea framework, `adbt` emphasi
 
 ---
 
+## Screenshots
+
+|                Dashboard Screen                |
+| :--------------------------------------------: |
+| ![Dashboard Screen](screenshots/dashboard.png) |
+
 ## 1\. Key Features
 
 ### Device Management and Control
@@ -193,3 +199,4 @@ Please follow standard GitHub practices: fork the repository, create a feature b
 ## 7\. License
 
 This project is released under the **MIT License**.
+
