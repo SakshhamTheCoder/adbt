@@ -99,7 +99,7 @@ func (d *DeviceInfo) runAction(a deviceAction) tea.Cmd {
 	d.toast, cmd = components.ShowToast(
 		"Command executed successfully",
 		false,
-		2*time.Second,
+		20*time.Second,
 	)
 	return cmd
 }

@@ -8,9 +8,12 @@ Developed using Go and the Charm Bracelet's Bubble Tea framework, `adbt` emphasi
 
 ## Screenshots
 
-|                Dashboard Screen                |
-| :--------------------------------------------: |
-| ![Dashboard Screen](screenshots/dashboard.png) |
+|                    Screen View                     |
+| :------------------------------------------------: |
+|                **Dashboard Screen**                |
+|   ![Dashboard Screen](screenshots/dashboard.png)   |
+|               **Device Info Screen**               |
+| ![Device Info Screen](screenshots/device_info.png) |
 
 ## 1\. Key Features
 
