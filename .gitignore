@@ -1,0 +1,16 @@
+.DS_Store
+output.txt
+.vscode/
+.idea/
+*.log
+*.tmp
+build/
+dist/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+.env
+.env.local
