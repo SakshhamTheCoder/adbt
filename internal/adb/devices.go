@@ -23,7 +23,7 @@ type PairWirelessResultMsg struct {
 	Error error
 }
 
-func ListDevices() tea.Cmd {
+func ListDevicesCmd() tea.Cmd {
 	return func() tea.Msg {
 		out, err := ExecuteCommand("", "devices")
 		if err != nil {

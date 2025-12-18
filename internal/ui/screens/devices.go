@@ -27,7 +27,7 @@ func NewDevices(state *state.AppState) *Devices {
 
 func (d *Devices) Init() tea.Cmd {
 	d.loading = true
-	return adb.ListDevices()
+	return adb.ListDevicesCmd()
 }
 
 func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -73,7 +73,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		d.loading = true
-		return d, adb.ListDevices()
+		return d, adb.ListDevicesCmd()
 	}
 
 	switch msg := msg.(type) {
@@ -111,7 +111,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "r":
 			d.loading = true
-			return d, adb.ListDevices()
+			return d, adb.ListDevicesCmd()
 		}
 
 	case adb.DevicesLoadedMsg:

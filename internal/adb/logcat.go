@@ -64,9 +64,3 @@ func NextLogcatLineCmd(s *LogcatSession) tea.Cmd {
 		return LogcatStoppedMsg{}
 	}
 }
-
-func StopLogcat(s *LogcatSession) {
-	if s != nil && s.cmd != nil && s.cmd.Process != nil {
-		_ = s.cmd.Process.Kill()
-	}
-}

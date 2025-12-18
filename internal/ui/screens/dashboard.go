@@ -41,7 +41,7 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 
 func (d *Dashboard) Init() tea.Cmd {
 	d.loading = true
-	return adb.ListDevices()
+	return adb.ListDevicesCmd()
 }
 
 func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
