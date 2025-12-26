@@ -20,6 +20,7 @@ type deviceAction struct {
 type DeviceInfo struct {
 	state   *state.AppState
 	actions []deviceAction
+	cursor  int
 	toast   components.Toast
 }
 
@@ -27,7 +28,9 @@ func NewDeviceInfo(state *state.AppState) *DeviceInfo {
 	return &DeviceInfo{
 		state: state,
 		actions: []deviceAction{
-			{"s", "Start scrcpy", adb.StartScrcpyCmd},
+			{"c", "Start scrcpy", adb.StartScrcpyCmd},
+			{"w", "Toggle Wi-Fi", adb.ToggleWifiCmd},
+			{"s", "Toggle Screen", adb.ToggleScreenCmd},
 			{"r", "Reboot device", adb.RebootCmd},
 			{"R", "Reboot to recovery", adb.RebootRecoveryCmd},
 			{"b", "Reboot to bootloader", adb.RebootBootloaderCmd},
@@ -48,9 +51,29 @@ func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !d.state.HasDevice() {
 			return d, nil
 		}
-		for _, a := range d.actions {
-			if msg.String() == a.key {
-				return d, a.cmd(d.state.DeviceSerial())
+
+		switch msg.String() {
+
+		case "up", "k":
+			if d.cursor > 0 {
+				d.cursor--
+			}
+
+		case "down", "j":
+			if d.cursor < len(d.actions)-1 {
+				d.cursor++
+			}
+
+		case "enter":
+			a := d.actions[d.cursor]
+			return d, a.cmd(d.state.DeviceSerial())
+
+		default:
+
+			for _, a := range d.actions {
+				if msg.String() == a.key {
+					return d, a.cmd(d.state.DeviceSerial())
+				}
 			}
 		}
 
@@ -98,26 +121,36 @@ func (d *DeviceInfo) View() string {
 		}),
 	)
 
-	body.WriteString("\n\n")
-	body.WriteString(components.TitleStyle.Render("Actions") + "\n\n")
+	body.WriteString("\n")
+	body.WriteString(components.TitleStyle.Render("Actions") + "\n")
 
-	for _, a := range d.actions {
-		body.WriteString(
-			components.HelpKeyStyle.Render("["+a.key+"]") +
-				" " +
-				components.ListItemStyle.Render(a.label) +
-				"\n",
-		)
+	for i, a := range d.actions {
+		line := "  "
+		if i == d.cursor {
+			line = "› "
+		}
+
+		if i == d.cursor {
+			line += components.HelpKeyStyle.Render("[" + a.key + "]")
+			line += " " + components.ListItemSelectedStyle.Render(a.label)
+		} else {
+			line += components.StatusMuted.Render("[" + a.key + "] ")
+			line += components.ListItemStyle.Render(a.label)
+		}
+
+		body.WriteString(line + "\n")
 	}
 
 	if d.toast.Visible {
-		body.WriteString("\n\n")
+		body.WriteString("\n")
 		body.WriteString(d.toast.View())
 	}
 
 	return components.RenderLayout(d.state, components.LayoutProps{
-		Title:  "Device Info",
-		Body:   body.String(),
-		Footer: components.Help("esc", "back") + "  " + components.Help("q", "quit"),
+		Title: "Device Info",
+		Body:  body.String(),
+		Footer: components.Help("↑/↓", "navigate") + "  " +
+			components.Help("enter", "select") + "  " +
+			components.Help("esc", "back") + "  ",
 	})
 }

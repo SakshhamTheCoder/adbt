@@ -99,8 +99,6 @@ func (d *Dashboard) View() string {
 				{Key: "Status:", Value: components.StatusConnected.Render("● Connected")},
 				{Key: "Model:", Value: dev.Model},
 				{Key: "Serial:", Value: dev.Serial},
-				{Key: "Android:", Value: dev.Android},
-				{Key: "State:", Value: dev.State},
 			}),
 		)
 	} else {

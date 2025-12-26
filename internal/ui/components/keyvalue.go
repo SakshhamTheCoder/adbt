@@ -9,11 +9,9 @@ type KeyValueRow struct {
 
 func KeyValueList(rows []KeyValueRow) string {
 	label := StatusMuted.
-		Width(9).
 		Align(lipgloss.Right)
 
 	value := StatusMuted.
-		Width(15).
 		Align(lipgloss.Left)
 
 	out := ""
