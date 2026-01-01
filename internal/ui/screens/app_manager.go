@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"fmt"
 	"strings"
 
 	"adbt/internal/adb"
@@ -10,15 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type appAction struct {
-	key   string
-	label string
-	cmd   func(string) tea.Cmd
-}
-
 type AppManager struct {
 	state   *state.AppState
-	actions []appAction
 	apps    []adb.App
 	loading bool
 }
@@ -26,37 +20,41 @@ type AppManager struct {
 func NewAppManager(state *state.AppState) *AppManager {
 	return &AppManager{
 		state: state,
-		actions: []appAction{
-			{"l", "List Installed Apps", adb.ListAppsCmd},
-		},
 	}
 }
 
 func (a *AppManager) Init() tea.Cmd {
-	return nil
+	if !a.state.HasDevice() {
+		return nil
+	}
+
+	a.loading = true
+	return adb.ListAppsCmd(a.state.DeviceSerial())
 }
 
 func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	case tea.KeyMsg:
-		if !a.state.HasDevice() {
-			return a, nil
-		}
-		for _, act := range a.actions {
-			if msg.String() == act.key {
-				a.loading = true
-				return a, act.cmd(a.state.DeviceSerial())
-			}
-		}
-
 	case adb.AppsLoadedMsg:
 		a.loading = false
 		a.apps = msg.Apps
+		return a, nil
 
 	case adb.AppsLoadErrorMsg:
 		a.loading = false
+		return a, nil
 
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "r":
+			if a.state.HasDevice() {
+				a.loading = true
+				return a, adb.ListAppsCmd(a.state.DeviceSerial())
+			}
+		default:
+
+			return a, components.UpdateViewport("Apps", msg)
+		}
 	}
 
 	return a, nil
@@ -64,25 +62,42 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a *AppManager) View() string {
 	if !a.state.HasDevice() {
-		return components.RenderLayout(a.state, components.LayoutProps{
-			Title: "Apps",
-			Body:  components.StatusDisconnected.Render("No device selected"),
-		})
+		return components.RenderNoDevice(a.state, "Apps")
 	}
 
 	var body strings.Builder
+	var scrollableContent strings.Builder
+
+	body.WriteString(components.TitleStyle.Render("Installed Applications") + "\n\n")
 
 	if a.loading {
-		body.WriteString("Loading apps...")
+		scrollableContent.WriteString(components.StatusMuted.Render("Loading apps..."))
+	} else if len(a.apps) == 0 {
+		scrollableContent.WriteString(components.StatusMuted.Render("No apps found"))
 	} else {
 		for _, app := range a.apps {
-			body.WriteString(app.PackageName + "\n")
+			tag := components.StatusMuted.Render("[U]")
+			if app.IsSystem {
+				tag = components.StatusMuted.Render("[S]")
+			}
+
+			line := fmt.Sprintf(
+				"%s %s",
+				tag,
+				components.ListItemStyle.Render(app.PackageName),
+			)
+
+			scrollableContent.WriteString(line)
+			scrollableContent.WriteString("\n")
 		}
 	}
 
-	return components.RenderLayout(a.state, components.LayoutProps{
-		Title:  "Apps",
-		Body:   body.String(),
-		Footer: components.Help("l", "list apps") + "  " + components.Help("esc", "back"),
+	return components.RenderLayoutWithScrollableSection(a.state, components.LayoutWithScrollProps{
+		Title:             "Apps",
+		StaticContent:     body.String(),
+		ScrollableContent: scrollableContent.String(),
+		Footer: components.Help("↑/↓", "scroll") + "  " +
+			components.Help("r", "reload") + "  " +
+			components.Help("esc", "back"),
 	})
 }

@@ -66,6 +66,8 @@ func (a *App) switchScreen(name string) (*App, tea.Cmd) {
 		newScreen = screens.NewLogcat(a.state)
 	case "device_info":
 		newScreen = screens.NewDeviceInfo(a.state)
+	case "apps":
+		newScreen = screens.NewAppManager(a.state)
 
 	default:
 		return a, nil

@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -8,7 +9,8 @@ import (
 
 type App struct {
 	PackageName string
-	Path        string
+	APKPath     string
+	IsSystem    bool
 }
 
 type AppsLoadedMsg struct {
@@ -24,29 +26,44 @@ func ParseApps(output []byte) []App {
 	apps := make([]App, 0, len(lines))
 
 	for _, line := range lines {
-		if len(line) == 0 {
+		if !strings.HasPrefix(line, "package:") {
 			continue
 		}
-		var app App
+
+		line = strings.TrimPrefix(line, "package:")
+
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
-		app.PackageName = parts[1]
-		pathParts := strings.SplitN(parts[0], ":", 2)
-		if len(pathParts) != 2 {
-			continue
-		}
-		app.Path = pathParts[1]
-		apps = append(apps, app)
+
+		apkPath := parts[0]
+		pkgName := parts[1]
+
+		apps = append(apps, App{
+			PackageName: pkgName,
+			APKPath:     apkPath,
+			IsSystem:    isSystemApp(apkPath),
+		})
 	}
+
+	sort.Slice(apps, func(i, j int) bool {
+		return apps[i].PackageName < apps[j].PackageName
+	})
 
 	return apps
 }
 
 func ListAppsCmd(serial string) tea.Cmd {
 	return func() tea.Msg {
-		out, err := ExecuteCommand(serial, "shell", "pm", "list", "packages", "-f")
+		out, err := ExecuteCommand(
+			serial,
+			"shell",
+			"pm",
+			"list",
+			"packages",
+			"-f",
+		)
 		if err != nil {
 			return AppsLoadErrorMsg{Error: err}
 		}
@@ -55,4 +72,10 @@ func ListAppsCmd(serial string) tea.Cmd {
 			Apps: ParseApps(out),
 		}
 	}
+}
+
+func isSystemApp(apkPath string) bool {
+	return strings.HasPrefix(apkPath, "/system") ||
+		strings.HasPrefix(apkPath, "/vendor") ||
+		strings.HasPrefix(apkPath, "/product")
 }
