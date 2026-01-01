@@ -1,10 +1,9 @@
-name: Build adbt (latest)
+name: Build adbt and publish binaries
 
 on:
   push:
     branches:
       - main
-      - master
 
 permissions:
   contents: write
@@ -13,49 +12,39 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "stable"
 
-      # -------- macOS --------
-      - name: Build macOS
+      - name: Build binary
         run: |
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
-          zip -9 adbt-darwin-amd64.zip adbt LICENSE
-          rm adbt
+          mkdir -p dist
+          EXT=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; fi
 
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
-          zip -9 adbt-darwin-arm64.zip adbt LICENSE
-          rm adbt
+          CGO_ENABLED=0 \
+          GOOS=${{ matrix.goos }} \
+          GOARCH=${{ matrix.goarch }} \
+          go build -trimpath -ldflags="-s -w" \
+          -o dist/adbt-${{ matrix.goos }}-${{ matrix.goarch }}$EXT \
+          ./cmd/adbt
 
-      # -------- Linux --------
-      - name: Build Linux
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
-          tar -czf adbt-linux-amd64.tar.gz adbt LICENSE
-          rm adbt
-
-      # -------- Windows --------
-      - name: Build Windows
-        run: |
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o adbt.exe ./cmd/adbt
-          zip -9 adbt-windows-amd64.zip adbt.exe LICENSE
-          rm adbt.exe
-
-      # -------- Publish --------
-      - name: Publish latest release
+      - name: Upload binaries to latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest
-          prerelease: false
-          files: |
-            adbt-darwin-amd64.zip
-            adbt-darwin-arm64.zip
-            adbt-linux-amd64.tar.gz
-            adbt-windows-amd64.zip
+          files: dist/*
