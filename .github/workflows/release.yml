@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Build adbt
+      - name: Build
         run: |
           mkdir -p dist
 
@@ -34,3 +37,11 @@ jobs:
           GOOS=${{ matrix.os }} \
           GOARCH=${{ matrix.arch }} \
           go build -o dist/$BIN ./cmd/adbt/main.go
+
+      - name: Upload to latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest
+          prerelease: false
+          files: dist/*
