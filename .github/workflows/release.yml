@@ -1,4 +1,4 @@
-name: Build Go App (Multi OS)
+name: Build adbt
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - name: Build
         run: |
