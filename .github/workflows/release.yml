@@ -1,8 +1,10 @@
-name: Build adbt and Upload Release Assets
+name: Build adbt (latest)
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+      - master
 
 permissions:
   contents: write
@@ -20,43 +22,38 @@ jobs:
         with:
           go-version: "1.21"
 
-      # ---------------- macOS ----------------
-      - name: Build macOS binaries
+      # -------- macOS --------
+      - name: Build macOS
         run: |
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
-            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o adbt ./cmd/adbt
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
           zip -9 adbt-darwin-amd64.zip adbt LICENSE
           rm adbt
 
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
-            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o adbt ./cmd/adbt
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
           zip -9 adbt-darwin-arm64.zip adbt LICENSE
           rm adbt
 
-      # ---------------- Linux ----------------
-      - name: Build Linux binary
+      # -------- Linux --------
+      - name: Build Linux
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o adbt ./cmd/adbt
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o adbt ./cmd/adbt
           tar -czf adbt-linux-amd64.tar.gz adbt LICENSE
           rm adbt
 
-      # ---------------- Windows ----------------
-      - name: Build Windows binary
+      # -------- Windows --------
+      - name: Build Windows
         run: |
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
-            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o adbt.exe ./cmd/adbt
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o adbt.exe ./cmd/adbt
           zip -9 adbt-windows-amd64.zip adbt.exe LICENSE
           rm adbt.exe
 
-      # ---------------- Upload ----------------
-      - name: Upload release assets
+      # -------- Publish --------
+      - name: Publish latest release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: Latest
+          prerelease: false
           files: |
             adbt-darwin-amd64.zip
             adbt-darwin-arm64.zip
