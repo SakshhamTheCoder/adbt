@@ -1,4 +1,4 @@
-name: Build adbt
+name: Build Go App (Multi OS)
 
 on:
   push:
@@ -15,21 +15,22 @@ jobs:
         arch: [amd64, arm64]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.22'
 
       - name: Build
         run: |
           mkdir -p dist
-          BIN_NAME=adbt-${{ matrix.os }}-${{ matrix.arch }}
+
+          BIN=adbt-${{ matrix.os }}-${{ matrix.arch }}
           if [ "${{ matrix.os }}" = "windows" ]; then
-            BIN_NAME="${BIN_NAME}.exe"
+            BIN="$BIN.exe"
           fi
 
-          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} \
-          go build -o dist/$BIN_NAME ./cmd/adbt/main.go
+          CGO_ENABLED=0 \
+          GOOS=${{ matrix.os }} \
+          GOARCH=${{ matrix.arch }} \
+          go build -o dist/$BIN ./cmd/adbt/main.go
