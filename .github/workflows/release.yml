@@ -1,0 +1,64 @@
+name: Build adbt and Upload Release Assets
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      # ---------------- macOS ----------------
+      - name: Build macOS binaries
+        run: |
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
+            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o adbt ./cmd/adbt
+          zip -9 adbt-darwin-amd64.zip adbt LICENSE
+          rm adbt
+
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
+            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o adbt ./cmd/adbt
+          zip -9 adbt-darwin-arm64.zip adbt LICENSE
+          rm adbt
+
+      # ---------------- Linux ----------------
+      - name: Build Linux binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o adbt ./cmd/adbt
+          tar -czf adbt-linux-amd64.tar.gz adbt LICENSE
+          rm adbt
+
+      # ---------------- Windows ----------------
+      - name: Build Windows binary
+        run: |
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
+            go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o adbt.exe ./cmd/adbt
+          zip -9 adbt-windows-amd64.zip adbt.exe LICENSE
+          rm adbt.exe
+
+      # ---------------- Upload ----------------
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            adbt-darwin-amd64.zip
+            adbt-darwin-arm64.zip
+            adbt-linux-amd64.tar.gz
+            adbt-windows-amd64.zip
