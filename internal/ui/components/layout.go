@@ -179,3 +179,19 @@ func RenderNoDevice(state *state.AppState, title string) string {
 		Footer: Help("esc", "back"),
 	})
 }
+
+func ViewportEnsureVisible(screenTitle string, line int) {
+	vp, exists := viewports[screenTitle]
+	if !exists {
+		return
+	}
+
+	top := vp.YOffset
+	bottom := vp.YOffset + vp.Height - 1
+
+	if line < top {
+		vp.YOffset = line
+	} else if line > bottom {
+		vp.YOffset = line - vp.Height + 1
+	}
+}

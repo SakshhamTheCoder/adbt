@@ -12,28 +12,34 @@ import (
 )
 
 type deviceAction struct {
-	key   string
-	label string
-	cmd   func(string) tea.Cmd
+	key         string
+	label       string
+	cmd         func(string) tea.Cmd
+	destructive bool
 }
 
 type DeviceInfo struct {
 	state   *state.AppState
 	actions []deviceAction
 	cursor  int
-	toast   components.Toast
+
+	confirm components.ConfirmPrompt
+	pending *deviceAction
+
+	toast components.Toast
 }
 
 func NewDeviceInfo(state *state.AppState) *DeviceInfo {
 	return &DeviceInfo{
 		state: state,
 		actions: []deviceAction{
-			{"c", "Start scrcpy", adb.StartScrcpyCmd},
-			{"w", "Toggle Wi-Fi", adb.ToggleWifiCmd},
-			{"s", "Toggle Screen", adb.ToggleScreenCmd},
-			{"r", "Reboot device", adb.RebootCmd},
-			{"R", "Reboot to recovery", adb.RebootRecoveryCmd},
-			{"b", "Reboot to bootloader", adb.RebootBootloaderCmd},
+			{"c", "Start scrcpy", adb.StartScrcpyCmd, false},
+			{"w", "Toggle Wi-Fi", adb.ToggleWifiCmd, false},
+			{"s", "Toggle Screen", adb.ToggleScreenCmd, false},
+
+			{"r", "Reboot device", adb.RebootCmd, true},
+			{"R", "Reboot to recovery", adb.RebootRecoveryCmd, true},
+			{"b", "Reboot to bootloader", adb.RebootBootloaderCmd, true},
 		},
 	}
 }
@@ -44,6 +50,24 @@ func (d *DeviceInfo) Init() tea.Cmd {
 
 func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	d.toast.Update(msg)
+
+	if d.confirm.Visible {
+		switch msg.(type) {
+
+		case components.ConfirmYesMsg:
+			a := d.pending
+			d.pending = nil
+			d.confirm.Hide()
+			return d, a.cmd(d.state.DeviceSerial())
+
+		case components.ConfirmNoMsg:
+			d.pending = nil
+			d.confirm.Hide()
+			return d, nil
+		}
+
+		return d, d.confirm.Update(msg)
+	}
 
 	switch msg := msg.(type) {
 
@@ -65,14 +89,13 @@ func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter":
-			a := d.actions[d.cursor]
-			return d, a.cmd(d.state.DeviceSerial())
+			return d, d.triggerAction(d.actions[d.cursor])
 
 		default:
-
-			for _, a := range d.actions {
-				if msg.String() == a.key {
-					return d, a.cmd(d.state.DeviceSerial())
+			for i := range d.actions {
+				if msg.String() == d.actions[i].key {
+					d.cursor = i
+					return d, d.triggerAction(d.actions[i])
 				}
 			}
 		}
@@ -97,6 +120,16 @@ func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return d, nil
+}
+
+func (d *DeviceInfo) triggerAction(a deviceAction) tea.Cmd {
+	if a.destructive {
+		d.pending = &a
+		d.confirm.Show(a.label + "?")
+		return nil
+	}
+
+	return a.cmd(d.state.DeviceSerial())
 }
 
 func (d *DeviceInfo) View() string {
@@ -138,11 +171,20 @@ func (d *DeviceInfo) View() string {
 			line += components.ListItemStyle.Render(a.label)
 		}
 
+		if a.destructive {
+			line += " " + components.ErrorStyle.Render("!")
+		}
+
 		body.WriteString(line + "\n")
 	}
 
+	if d.confirm.Visible {
+		body.WriteString("\n\n")
+		body.WriteString(d.confirm.View())
+	}
+
 	if d.toast.Visible {
-		body.WriteString("\n")
+		body.WriteString("\n\n")
 		body.WriteString(d.toast.View())
 	}
 
@@ -151,6 +193,6 @@ func (d *DeviceInfo) View() string {
 		Body:  body.String(),
 		Footer: components.Help("↑/↓", "navigate") + "  " +
 			components.Help("enter", "select") + "  " +
-			components.Help("esc", "back") + "  ",
+			components.Help("esc", "back"),
 	})
 }

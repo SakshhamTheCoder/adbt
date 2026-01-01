@@ -32,9 +32,8 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 			{"d", "Devices", "View and select connected devices", ActionDevices, false},
 			{"i", "Device Info", "View device details and controls", ActionDeviceInfo, true},
 			{"l", "Logcat", "View live device logs", ActionLogcat, true},
-			{"s", "Shell", "Interactive ADB shell", ActionShell, true},
 			{"a", "Apps", "Manage installed applications", ActionApps, true},
-			{"f", "Files", "Browse device storage", ActionFiles, true},
+			{"f", "Files", "Browse device file system", ActionFiles, true},
 		},
 	}
 }

@@ -58,16 +58,18 @@ func (a *App) switchScreen(name string) (*App, tea.Cmd) {
 	var newScreen tea.Model
 
 	switch name {
+	case "apps":
+		newScreen = screens.NewAppManager(a.state)
 	case "dashboard":
 		newScreen = screens.NewDashboard(a.state)
 	case "devices":
 		newScreen = screens.NewDevices(a.state)
-	case "logcat":
-		newScreen = screens.NewLogcat(a.state)
 	case "device_info":
 		newScreen = screens.NewDeviceInfo(a.state)
-	case "apps":
-		newScreen = screens.NewAppManager(a.state)
+	case "files":
+		newScreen = screens.NewFiles(a.state)
+	case "logcat":
+		newScreen = screens.NewLogcat(a.state)
 
 	default:
 		return a, nil
