@@ -1,4 +1,4 @@
-name: Build adbt and publish binaries
+name: Build adbt and update latest release
 
 on:
   push:
@@ -9,10 +9,11 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     strategy:
+      max-parallel: 1
       matrix:
         goos: [linux, darwin, windows]
         goarch: [amd64, arm64]
@@ -27,24 +28,26 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "stable"
+          go-version: stable
 
       - name: Build binary
         run: |
-          mkdir -p dist
-          EXT=""
-          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; fi
+          BIN_NAME=adbt-${{ matrix.goos }}-${{ matrix.goarch }}
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BIN_NAME="$BIN_NAME.exe"
+          fi
 
           CGO_ENABLED=0 \
           GOOS=${{ matrix.goos }} \
           GOARCH=${{ matrix.goarch }} \
-          go build -trimpath -ldflags="-s -w" \
-          -o dist/adbt-${{ matrix.goos }}-${{ matrix.goarch }}$EXT \
-          ./cmd/adbt
+          go build -ldflags="-s -w" -o $BIN_NAME ./cmd/adbt
 
-      - name: Upload binaries to latest release
+          echo "BIN_NAME=$BIN_NAME" >> $GITHUB_ENV
+
+      - name: Create or update latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest
-          files: dist/*
+          prerelease: false
+          files: ${{ env.BIN_NAME }}
