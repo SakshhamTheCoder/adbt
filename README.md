@@ -1,205 +1,205 @@
-# adbt: A Terminal UI for Android Debug Bridge
+# adbt — Android Debug Bridge TUI
 
-**adbt** is a modern, interactive terminal application built on the Android Debug Bridge (ADB). It provides a structured, keyboard-driven interface for managing Android devices directly within the terminal environment.
+**adbt** is a modern, keyboard-driven **Terminal User Interface (TUI)** for interacting with Android devices using the Android Debug Bridge (ADB).
+It provides a structured and interactive alternative to raw `adb` commands while remaining fast, predictable, and safe for daily use.
 
-Developed using Go and the Charm Bracelet's Bubble Tea framework, `adbt` emphasizes clarity, performance, and correctness, offering a powerful alternative to raw command-line ADB interactions.
+Built in **Go** using **Charm’s Bubble Tea framework**, `adbt` focuses on clarity, correctness, and real-time device interaction entirely from the terminal.
 
 ---
 
 ## Screenshots
 
-|                    Screen View                     |
-| :------------------------------------------------: |
-|                **Dashboard Screen**                |
-|   ![Dashboard Screen](screenshots/dashboard.png)   |
-|               **Device Info Screen**               |
-| ![Device Info Screen](screenshots/device_info.png) |
+Screenshots reflect the current codebase and actual UI.
 
-## 1\. Key Features
-
-### Device Management and Control
-
--   **Device Discovery:** Automatically lists all connected Android devices and displays detailed information including Model, Serial, Android version, and current state.
--   **Automatic Selection:** Automatically selects the device when only a single device is connected.
--   **Destructive Actions:** Provides one-click access to critical device functions with mandatory confirmation prompts:
-    -   Reboot device (`adb reboot`).
-    -   Reboot to Recovery (`adb reboot recovery`).
-    -   Reboot to Bootloader (`adb reboot bootloader`).
--   **Screen Mirroring:** Quick action to launch the external **scrcpy** tool for the selected device.
-
-### Interactive Tools
-
--   **Live Logcat Viewer:** Streams and displays device log output in real-time within the TUI. Features include the ability to **clear** logs and **start/stop** the incoming stream.
--   **Dashboard:** A centralized screen providing an overview of the selected device's status and quick access to all major features via single-key shortcuts.
--   **ADB Shell:** Designated screen for interactive shell access (currently defined as a feature, with TUI implementation pending).
-
-### Architecture and User Experience
-
--   **Keyboard-First Design:** The application is entirely keyboard-navigable, using standard key bindings:
-    -   **Navigation:** `↑ / ↓` or `j / k`
-    -   **Selection/Confirmation:** `enter`
-    -   **Back/Cancel:** `esc`
-    -   **Quick Actions:** Single-key shortcuts (e.g., `d`, `l`, `i`).
--   **Modal Input Handling:** Confirmation prompts and dialogs fully capture input, preventing key presses from affecting the underlying screen state, ensuring reliable execution of critical commands.
--   **Modular UI:** Built upon reusable Bubble Tea components (layouts, toasts, confirmation modals) for a consistent and robust visual experience.
+| Dashboard                               | Device Info                                 |
+| --------------------------------------- | ------------------------------------------- |
+| ![Dashboard](screenshots/dashboard.png) | ![Device Info](screenshots/device_info.png) |
 
 ---
 
-## 2\. Technologies Used
+## Features
 
-| Category               | Technology                                               | Purpose                                                                     |
-| :--------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------------- |
-| **Language**           | Go (Golang)                                              | Primary application development language (Go 1.21+).                        |
-| **TUI Framework**      | [Bubble Tea](https://github.com/charmbracelet/bubbletea) | Implementation of the Terminal UI using The Elm Architecture.               |
-| **Styling**            | [Lip Gloss](https://github.com/charmbracelet/lipgloss)   | Used for advanced terminal styling, layout, and visual component rendering. |
-| **Tooling**            | Android SDK Platform Tools (`adb`)                       | The essential dependency for all device communication.                      |
-| **Tooling (Optional)** | `scrcpy`                                                 | External utility used to enable the screen mirroring feature.               |
+### Device Management
 
----
+-   Automatic detection of connected Android devices
+-   Device selection with connection state and Android version
+-   Automatic selection when exactly one device is connected
+-   Wireless ADB pairing using IP address, port, and PIN
 
-## 3\. Prerequisites and Installation
+### Dashboard
 
-### Requirements
+-   Central hub displaying current device status
+-   Keyboard shortcuts for all major features
+-   Device-aware actions disabled when no device is selected
 
-To run and build `adbt`, the following are mandatory:
+### Device Info and Controls
 
-1.  **Go:** Version 1.21 or newer.
-2.  **Android SDK Platform Tools:** The `adb` executable must be installed and accessible in your system's `$PATH`.
-3.  **An Android Device:** A physical device or emulator must be connected with USB debugging enabled.
+-   Displays device model, serial number, Android version, and state
+-   Supported actions:
 
-### Detailed Installation Steps (Build from Source)
+    -   Start scrcpy
+    -   Toggle Wi-Fi
+    -   Toggle screen power
+    -   Reboot device
+    -   Reboot to recovery
+    -   Reboot to bootloader
 
-The following steps guide you through cloning the repository, building the executable, and making it globally accessible.
+-   Mandatory confirmation prompts for destructive actions
 
-1.  **Clone the Repository:**
+### Logcat Viewer
 
-    ```bash
-    git clone https://github.com/<your-username>/adbt
-    cd adbt
-    ```
+-   Real-time streaming of `adb logcat`
+-   Pause and resume logging
+-   Clear log buffer
+-   Retains the last 1000 log lines for performance
 
-2.  **Build the Executable:**
-    The `go build` command compiles the source code, targeting the entry point in `cmd/adbt/main.go`.
+### App Manager
 
-    ```bash
-    go build -o adbt ./cmd/adbt
-    ```
+-   Lists installed applications on the device
+-   Distinguishes between system apps and user apps
+-   Reloads the application list on demand
 
-    This creates an executable file named `adbt` in the project root.
+### File Browser
 
-3.  **Run Locally:**
-    To execute the application from the project directory:
-
-    ```bash
-    ./adbt
-    ```
-
-4.  **(Optional) Install to PATH:**
-    To use `adbt` globally from any terminal directory, move the executable to a directory included in your `$PATH` (e.g., `/usr/local/bin`):
-
-    ```bash
-    sudo mv adbt /usr/local/bin
-    ```
-
-    You can now launch the application using only the command name:
-
-    ```bash
-    adbt
-    ```
+-   Browse the device file system starting at `/sdcard`
+-   Navigate directories
+-   Delete files and directories with confirmation
+-   Refresh directory contents
+-   Scrollable viewport for large directories
 
 ---
 
-## 4\. Usage and Key Commands
+## Keyboard Navigation
 
-### Launching
+### Global Keys
 
-Ensure an ADB-enabled device is connected before launching.
+| Key           | Action               |
+| ------------- | -------------------- |
+| `q`, `Ctrl+C` | Quit the application |
+| `esc`         | Go back or cancel    |
+| `↑ ↓`, `j k`  | Navigate lists       |
+| `enter`       | Select or confirm    |
+
+### Dashboard Shortcuts
+
+| Key | Action      |
+| --- | ----------- |
+| `d` | Devices     |
+| `i` | Device Info |
+| `l` | Logcat      |
+| `a` | Apps        |
+| `f` | Files       |
+
+---
+
+## Project Structure
+
+The project follows Bubble Tea’s Elm-style architecture, separating UI, state, and ADB logic.
+
+### Entry Point
+
+-   `cmd/adbt/main.go`
+    Initializes the Bubble Tea program and starts the UI loop.
+
+### ADB Layer (`internal/adb`)
+
+All direct interaction with the `adb` binary is handled here.
+
+-   `client.go` — Command execution helpers and output parsing
+-   `devices.go` — Device discovery and wireless pairing
+-   `device_info.go` — Device control actions (reboot, Wi-Fi, screen, scrcpy)
+-   `logcat.go` — Streaming logcat implementation
+-   `files.go` — File system operations
+-   `app_manager.go` — Installed applications listing
+
+### Global State (`internal/state`)
+
+-   `app.go` — Holds selected device, device list, and terminal dimensions
+
+### UI Layer (`internal/ui`)
+
+Responsible for all TUI rendering and interaction.
+
+-   `app.go` — Root Bubble Tea model and screen router
+
+#### Screens (`internal/ui/screens`)
+
+Each screen is an isolated Bubble Tea model.
+
+-   `dashboard.go` — Main dashboard and quick actions
+-   `devices.go` — Device selection and wireless pairing
+-   `device_info.go` — Device details and controls
+-   `logcat.go` — Live logcat viewer
+-   `files.go` — File browser
+-   `app_manager.go` — App manager
+-   `actions.go` — Action-to-screen resolution
+-   `messages.go` — Screen-switching messages
+
+#### UI Components (`internal/ui/components`)
+
+Reusable UI building blocks.
+
+-   `layout.go` — Layout and viewport handling
+-   `header.go` — Header rendering
+-   `list.go` — Device list rendering
+-   `file_list.go` — File list rendering
+-   `keyvalue.go` — Key-value table rendering
+-   `confirm.go` — Confirmation modal
+-   `form.go` — Input form modal
+-   `toast.go` — Toast notifications
+-   `styles.go` — Lip Gloss styling definitions
+
+### CI / Release
+
+-   `.github/workflows/release.yml` — Multi-OS build and GitHub release workflow
+
+---
+
+## Requirements
+
+-   Go 1.21 or newer
+-   Android SDK Platform Tools (`adb` available in PATH)
+-   Android device or emulator with USB debugging enabled
+-   Optional: `scrcpy` for screen mirroring
+
+---
+
+## Installation
+
+### Download Prebuilt Binaries
+
+Prebuilt binaries for Linux, macOS, and Windows are available on the GitHub Releases page.
 
 ```bash
-adbt
+chmod +x adbt
+./adbt
 ```
 
-### Core Navigation and Global Bindings
+### Build from Source
 
-| Key Binding     | Screen    | Action                                                       |
-| :-------------- | :-------- | :----------------------------------------------------------- |
-| `q` or `Ctrl+c` | Global    | Quits the application.                                       |
-| `esc`           | Global    | Returns to the Dashboard or cancels an active dialog/prompt. |
-| `enter` / `y`   | Prompt    | Confirms an action within a dialog.                          |
-| `esc` / `n`     | Prompt    | Cancels an action within a dialog.                           |
-| `d`             | Dashboard | Switches to the **Device Selection** screen.                 |
+```bash
+git clone https://github.com/<your-username>/adbt
+cd adbt
+go build -o adbt ./cmd/adbt
+./adbt
+```
 
-### Dashboard (Menu) Actions
+Optional global install:
 
-The Dashboard acts as the primary hub for device interaction.
-
-| Key | Menu Item   | Device Requirement | Function                                                             |
-| :-- | :---------- | :----------------- | :------------------------------------------------------------------- |
-| `d` | Devices     | No                 | View and select connected devices.                                   |
-| `i` | Device Info | Yes                | View detailed properties and control device states (reboot, scrcpy). |
-| `l` | Logcat      | Yes                | Access the live log viewer.                                          |
-| `s` | Shell       | Yes                | Access the interactive ADB shell.                                    |
-
-### Logcat Viewer Actions
-
-| Key | Function   | Description                                     |
-| :-- | :--------- | :---------------------------------------------- |
-| `c` | Clear      | Clears the log history currently displayed.     |
-| `s` | Start/Stop | Pauses or resumes the real-time logging stream. |
-
-### Device Control (Device Info Screen) Actions
-
-Actions on the Device Info screen trigger immediate confirmation prompts.
-
-| Key | Action               | ADB Command Executed (if confirmed) |
-| :-- | :------------------- | :---------------------------------- |
-| `s` | Start Scrcpy         | `scrcpy -s <serial>`                |
-| `r` | Reboot               | `adb -s <serial> reboot`            |
-| `R` | Reboot to Recovery   | `adb -s <serial> reboot recovery`   |
-| `b` | Reboot to Bootloader | `adb -s <serial> reboot bootloader` |
-
----
-
-## 5\. Project Structure
-
-The codebase is organized to separate concerns between the UI framework, global state, and the underlying ADB logic, following the Bubble Tea pattern.
-
-```text
-adbt/
-├── cmd/
-│   └── adbt/
-│       └── main.go       # Application entry point; initializes the Bubble Tea program.
-└── internal/
-    ├── adb/              # Contains all functions that execute 'adb' commands.
-    │   ├── client.go     # Low-level command execution and error handling (ExecuteCommand).
-    │   ├── devices.go    # Logic for listing devices and fetching properties.
-    │   ├── logcat.go     # Manages the streaming logcat process using channels and messages.
-    │   └── device_info.go# Wrappers for device control commands (reboot, scrcpy).
-    ├── state/            # Defines the global, mutable application data.
-    │   └── app.go        # AppState: holds the selected device, device list, and screen dimensions.
-    └── ui/               # All TUI components and screen logic.
-        ├── app.go        # The root TUI model and router; manages screen switching.
-        ├── components/   # Reusable UI primitives (views, styles, modals).
-        │   ├── styles.go # Defines all terminal styling using Lip Gloss.
-        │   └── confirm.go# Logic for the mandatory confirmation prompt modal.
-        └── screens/      # Dedicated Bubble Tea models for each primary view.
-            ├── dashboard.go# The main menu and status overview.
-            ├── devices.go  # The device selection list.
-            ├── logcat.go   # The logcat stream viewer.
-            └── actions.go  # Helper functions to resolve actions into screen switching commands.
+```bash
+sudo mv adbt /usr/local/bin
 ```
 
 ---
 
-## 6\. Contributing
+## Contributing
 
-We welcome contributions, issue reports, and discussions. If you are interested in terminal UIs, Go development, Bubble Tea, or Android tooling, you are encouraged to get involved.
-
-Please follow standard GitHub practices: fork the repository, create a feature branch, and submit a pull request for review.
+Contributions are welcome.
+Fork the repository, create a feature branch, and submit a pull request for review.
 
 ---
 
-## 7\. License
+## License
 
-This project is released under the **MIT License**.
+MIT License
 
