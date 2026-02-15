@@ -3,6 +3,8 @@ package components
 import (
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -38,9 +40,15 @@ func (t *Toast) View() string {
 		return ""
 	}
 
+	toastStyle := lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		Padding(0, 2)
+
 	if t.IsError {
-		return ErrorStyle.Render(t.Message)
+		toastStyle = toastStyle.BorderForeground(Error)
+		return toastStyle.Render(ErrorStyle.Render("✗ " + t.Message))
 	}
 
-	return StatusConnected.Render(t.Message)
+	toastStyle = toastStyle.BorderForeground(Success)
+	return toastStyle.Render(StatusConnected.Render("✓ " + t.Message))
 }

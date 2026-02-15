@@ -4,6 +4,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/charmbracelet/lipgloss"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -97,6 +99,11 @@ func (f *FormModal) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+var formBoxStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.RoundedBorder()).
+	BorderForeground(Primary).
+	Padding(0, 2)
+
 func (f *FormModal) View() string {
 	if !f.Visible {
 		return ""
@@ -128,10 +135,10 @@ func (f *FormModal) View() string {
 
 	b.WriteString("\n")
 	b.WriteString(
-		HelpKeyStyle.Render("enter") + " submit    " +
-			HelpKeyStyle.Render("esc") + " cancel    " +
-			HelpKeyStyle.Render("tab") + " next",
+		Help("enter", "submit") + "  " +
+			Help("esc", "cancel") + "  " +
+			Help("tab", "next"),
 	)
 
-	return ContentStyle.Render(b.String())
+	return formBoxStyle.Render(b.String())
 }

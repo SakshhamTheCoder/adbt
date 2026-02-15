@@ -1,6 +1,10 @@
 package components
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"github.com/charmbracelet/lipgloss"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type ConfirmYesMsg struct{}
 type ConfirmNoMsg struct{}
@@ -37,19 +41,19 @@ func (c *ConfirmPrompt) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+var confirmBoxStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.RoundedBorder()).
+	BorderForeground(Error).
+	Padding(0, 2)
+
 func (c *ConfirmPrompt) View() string {
 	if !c.Visible {
 		return ""
 	}
 
-	out := ""
-	out += ErrorStyle.Render(
-		"Are you sure?\n" +
-			c.Message +
-			"\n\n",
-	)
-	out += HelpKeyStyle.Render("[y]") + " Yes    "
-	out += HelpKeyStyle.Render("[n]") + " No"
+	content := ErrorStyle.Render("⚠ "+c.Message) + "\n" +
+		HelpKeyStyle.Render("[y]") + " " + HelpDescStyle.Render("Yes") + "  " +
+		HelpKeyStyle.Render("[n]") + " " + HelpDescStyle.Render("No")
 
-	return out
+	return confirmBoxStyle.Render(content)
 }

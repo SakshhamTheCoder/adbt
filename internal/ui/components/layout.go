@@ -7,14 +7,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
-
-type LayoutProps struct {
-	Title          string
-	Body           string
-	Footer         string
-	EnableViewport bool
-}
 
 type LayoutWithScrollProps struct {
 	Title             string
@@ -25,69 +19,6 @@ type LayoutWithScrollProps struct {
 
 var viewports = make(map[string]*viewport.Model)
 var viewportsReady = make(map[string]bool)
-
-func RenderLayout(state *state.AppState, props LayoutProps) string {
-	var b strings.Builder
-
-	b.WriteString(RenderHeader(state, props.Title) + "\n")
-
-	contentWidth := max(state.Width-4, 20)
-	contentHeight := state.Height - 7
-	if contentHeight < 10 {
-		contentHeight = 10
-	}
-
-	var bodyContent string
-
-	if props.EnableViewport {
-
-		screenKey := props.Title
-		vp, exists := viewports[screenKey]
-
-		if !exists || !viewportsReady[screenKey] {
-			newVp := viewport.New(contentWidth, contentHeight)
-			viewports[screenKey] = &newVp
-			vp = &newVp
-			viewportsReady[screenKey] = true
-		}
-
-		vp.Width = contentWidth
-		vp.Height = contentHeight
-		vp.SetContent(props.Body)
-		bodyContent = vp.View()
-	} else {
-		bodyContent = props.Body
-	}
-
-	b.WriteString(
-		ContentStyle.
-			Width(contentWidth).
-			Height(contentHeight).
-			Render(bodyContent) + "\n",
-	)
-
-	if props.Footer != "" {
-		footerText := props.Footer
-
-		if props.EnableViewport {
-			screenKey := props.Title
-			if vp, exists := viewports[screenKey]; exists {
-				if vp.TotalLineCount() > vp.Height {
-					percentage := int(vp.ScrollPercent() * 100)
-					scrollInfo := StatusMuted.Render(" │ ") +
-						StatusMuted.Render(string(rune('0'+percentage/10))) +
-						StatusMuted.Render(string(rune('0'+percentage%10))) +
-						StatusMuted.Render("%")
-					footerText += scrollInfo
-				}
-			}
-		}
-
-		b.WriteString(FooterStyle.Render(footerText))
-	}
-
-	return b.String()
-}
 
 func RenderLayoutWithScrollableSection(state *state.AppState, props LayoutWithScrollProps) string {
 	var b strings.Builder
@@ -173,10 +104,10 @@ func ViewportGotoBottom(screenTitle string) {
 }
 
 func RenderNoDevice(state *state.AppState, title string) string {
-	return RenderLayout(state, LayoutProps{
-		Title:  title,
-		Body:   StatusDisconnected.Render("No device selected"),
-		Footer: Help("esc", "back"),
+	return RenderLayoutWithScrollableSection(state, LayoutWithScrollProps{
+		Title:             title,
+		ScrollableContent: StatusDisconnected.Render("No device selected"),
+		Footer:            Help("esc", "back"),
 	})
 }
 
@@ -194,4 +125,35 @@ func ViewportEnsureVisible(screenTitle string, line int) {
 	} else if line > bottom {
 		vp.YOffset = line - vp.Height + 1
 	}
+}
+
+func RenderOverlay(base, overlay string, s *state.AppState) string {
+	baseLines := strings.Split(base, "\n")
+	overlayLines := strings.Split(overlay, "\n")
+
+	overlayW := lipgloss.Width(overlay)
+	overlayH := len(overlayLines)
+
+	x := (s.Width - overlayW) / 2
+	y := (s.Height - overlayH) / 2
+
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+
+	leftPad := strings.Repeat(" ", x)
+
+	for i, oLine := range overlayLines {
+		row := y + i
+		if row < 0 || row >= len(baseLines) {
+			continue
+		}
+
+		baseLines[row] = leftPad + oLine
+	}
+
+	return strings.Join(baseLines, "\n")
 }

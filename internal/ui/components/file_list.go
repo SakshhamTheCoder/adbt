@@ -20,6 +20,11 @@ func FileList(files []adb.FileEntry, cursor int) string {
 			icon = "📁"
 		}
 
+		size := ""
+		if !f.IsDir && f.Size != "" {
+			size = " " + StatusMuted.Render(adb.FormatFileSize(f.Size))
+		}
+
 		line := fmt.Sprintf(
 			"%s%s %s",
 			prefix,
@@ -28,9 +33,9 @@ func FileList(files []adb.FileEntry, cursor int) string {
 		)
 
 		if i == cursor {
-			out += ListItemSelectedStyle.Render(line)
+			out += ListItemSelectedStyle.Render(line) + size
 		} else {
-			out += ListItemStyle.Render(line)
+			out += ListItemStyle.Render(line) + size
 		}
 
 		out += "\n"
