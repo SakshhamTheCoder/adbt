@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -21,6 +22,15 @@ type AppsLoadErrorMsg struct {
 	Error error
 }
 
+type AppActionResultMsg struct {
+	Action string
+}
+
+type AppActionErrorMsg struct {
+	Action string
+	Error  error
+}
+
 func ParseApps(output []byte) []App {
 	lines := ParseLines(output)
 	apps := make([]App, 0, len(lines))
@@ -32,13 +42,13 @@ func ParseApps(output []byte) []App {
 
 		line = strings.TrimPrefix(line, "package:")
 
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
+		parts := strings.LastIndex(line, "=")
+		if parts == -1 {
 			continue
 		}
 
-		apkPath := parts[0]
-		pkgName := parts[1]
+		apkPath := line[:parts]
+		pkgName := line[parts+1:]
 
 		apps = append(apps, App{
 			PackageName: pkgName,
@@ -71,6 +81,84 @@ func ListAppsCmd(serial string) tea.Cmd {
 		return AppsLoadedMsg{
 			Apps: ParseApps(out),
 		}
+	}
+}
+
+func LaunchAppCmd(serial, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		out, err := ExecuteCommand(serial, "shell", "cmd", "package", "resolve-activity", "--brief", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER", pkg)
+		if err != nil {
+			out, err = ExecuteCommand(serial, "shell", "cmd", "package", "resolve-activity", "--brief", pkg)
+			if err != nil {
+				return AppActionErrorMsg{Action: "launch", Error: fmt.Errorf("failed to find activity: %w", err)}
+			}
+		}
+
+		lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+		var component string
+		for i := len(lines) - 1; i >= 0; i-- {
+			line := strings.TrimSpace(lines[i])
+			if strings.Contains(line, "/") {
+				component = line
+				break
+			}
+		}
+
+		if component == "" {
+			return AppActionErrorMsg{Action: "launch", Error: fmt.Errorf("no launchable activity found for %s", pkg)}
+		}
+
+		_, err = ExecuteCommand(serial, "shell", "am", "start", "-n", component)
+		if err != nil {
+			return AppActionErrorMsg{Action: "launch", Error: err}
+		}
+		return AppActionResultMsg{Action: "launch"}
+	}
+}
+
+func ForceStopAppCmd(serial, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := ExecuteCommand(
+			serial,
+			"shell",
+			"am",
+			"force-stop",
+			pkg,
+		)
+		if err != nil {
+			return AppActionErrorMsg{Action: "force stop", Error: err}
+		}
+		return AppActionResultMsg{Action: "force stop"}
+	}
+}
+
+func UninstallAppCmd(serial, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := ExecuteCommand(
+			serial,
+			"uninstall",
+			pkg,
+		)
+		if err != nil {
+			return AppActionErrorMsg{Action: "uninstall", Error: err}
+		}
+		return AppActionResultMsg{Action: "uninstall"}
+	}
+}
+
+func ClearAppDataCmd(serial, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := ExecuteCommand(
+			serial,
+			"shell",
+			"pm",
+			"clear",
+			pkg,
+		)
+		if err != nil {
+			return AppActionErrorMsg{Action: "clear data", Error: err}
+		}
+		return AppActionResultMsg{Action: "clear data"}
 	}
 }
 
