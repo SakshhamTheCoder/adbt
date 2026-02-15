@@ -48,7 +48,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case components.FormCancelMsg:
 			d.form.Hide()
-			return d, nil
+			return d, tea.Batch()
 		}
 
 		if cmd := d.form.Update(msg); cmd != nil {
@@ -134,7 +134,7 @@ func (d *Devices) View() string {
 	var body strings.Builder
 
 	if d.loading {
-		body.WriteString("Loading devices...")
+		body.WriteString(components.StatusMuted.Render("Loading devices..."))
 	} else {
 		body.WriteString(components.DeviceList(d.state.Devices, d.cursor))
 	}
@@ -146,23 +146,23 @@ func (d *Devices) View() string {
 		)
 	}
 
-	if d.form.Visible {
-		body.WriteString("\n\n")
-		body.WriteString(d.form.View())
-	}
-
-	if d.toast.Visible {
-		body.WriteString("\n\n")
-		body.WriteString(d.toast.View())
-	}
-
-	return components.RenderLayout(d.state, components.LayoutProps{
-		Title: "Device Selection",
-		Body:  body.String(),
+	rendered := components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
+		Title:             "Device Selection",
+		ScrollableContent: body.String(),
 		Footer: components.Help("↑/↓", "navigate") + "  " +
 			components.Help("enter", "select") + "  " +
 			components.Help("w", "wireless pair") + "  " +
 			components.Help("r", "refresh") + "  " +
 			components.Help("esc", "back"),
 	})
+
+	if d.form.Visible {
+		rendered = components.RenderOverlay(rendered, d.form.View(), d.state)
+	}
+
+	if d.toast.Visible {
+		rendered = components.RenderOverlay(rendered, d.toast.View(), d.state)
+	}
+
+	return rendered
 }

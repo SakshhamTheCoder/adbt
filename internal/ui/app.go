@@ -39,10 +39,15 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, tea.Quit
 
 		case "esc":
-
+			var cmd tea.Cmd
+			a.currentScreen, cmd = a.currentScreen.Update(msg)
+			if cmd != nil {
+				return a, cmd
+			}
 			if a.screenName != "dashboard" {
 				return a.switchScreen("dashboard")
 			}
+			return a, nil
 		}
 
 	case screens.SwitchScreenMsg:

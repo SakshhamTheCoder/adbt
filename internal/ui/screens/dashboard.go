@@ -80,64 +80,61 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (d *Dashboard) View() string {
-	if d.loading {
-		return components.RenderLayout(d.state, components.LayoutProps{
-			Title: "Dashboard",
-			Body:  "Loading devices...",
-		})
-	}
-
 	var body strings.Builder
 
-	body.WriteString(components.TitleStyle.Render("Device") + "\n")
-
-	if d.state.HasDevice() {
-		dev := d.state.SelectedDevice
-		body.WriteString(
-			components.KeyValueList([]components.KeyValueRow{
-				{Key: "Status:", Value: components.StatusConnected.Render("● Connected")},
-				{Key: "Model:", Value: dev.Model},
-				{Key: "Serial:", Value: dev.Serial},
-			}),
-		)
+	if d.loading {
+		body.WriteString(components.StatusMuted.Render("Loading devices..."))
 	} else {
-		body.WriteString(components.StatusDisconnected.Render("● No device connected\n"))
-		body.WriteString(components.StatusMuted.Render(
-			"Connect a device with USB debugging enabled.\nPress D to open device manager.",
-		))
-	}
+		body.WriteString(components.TitleStyle.Render("Device") + "\n")
 
-	body.WriteString("\n")
-	body.WriteString(components.TitleStyle.Render("Quick Actions") + "\n")
-
-	for i, item := range d.menuItems {
-		line := "  "
-		if i == d.cursor {
-			line = "› "
-		}
-
-		disabled := item.requireDevice && !d.state.HasDevice()
-
-		if i == d.cursor {
-			line += components.HelpKeyStyle.Render("[" + item.key + "]")
-			line += " " + components.ListItemSelectedStyle.Render(item.label)
+		if d.state.HasDevice() {
+			dev := d.state.SelectedDevice
+			body.WriteString(
+				components.KeyValueList([]components.KeyValueRow{
+					{Key: "Status:", Value: components.StatusConnected.Render("● Connected")},
+					{Key: "Model:", Value: dev.Model},
+					{Key: "Serial:", Value: dev.Serial},
+				}),
+			)
 		} else {
-			line += components.StatusMuted.Render("[" + item.key + "] ")
-			line += components.ListItemStyle.Render(item.label)
+			body.WriteString(components.StatusDisconnected.Render("● No device connected\n"))
+			body.WriteString(components.StatusMuted.Render(
+				"Connect a device with USB debugging enabled.\nPress D to open device manager.",
+			))
 		}
 
-		line += " " + components.StatusMuted.Render("- "+item.description)
+		body.WriteString("\n")
+		body.WriteString(components.TitleStyle.Render("Quick Actions") + "\n")
 
-		if disabled {
-			line += " " + components.ErrorStyle.Render("(requires device)")
+		for i, item := range d.menuItems {
+			line := "  "
+			if i == d.cursor {
+				line = "› "
+			}
+
+			disabled := item.requireDevice && !d.state.HasDevice()
+
+			if i == d.cursor {
+				line += components.HelpKeyStyle.Render("[" + item.key + "]")
+				line += " " + components.ListItemSelectedStyle.Render(item.label)
+			} else {
+				line += components.StatusMuted.Render("[" + item.key + "] ")
+				line += components.ListItemStyle.Render(item.label)
+			}
+
+			line += " " + components.StatusMuted.Render("- "+item.description)
+
+			if disabled {
+				line += " " + components.ErrorStyle.Render("(requires device)")
+			}
+
+			body.WriteString(line + "\n")
 		}
-
-		body.WriteString(line + "\n")
 	}
 
-	return components.RenderLayout(d.state, components.LayoutProps{
-		Title:  "Dashboard",
-		Body:   body.String(),
-		Footer: components.Help("↑/↓", "navigate") + "  " + components.Help("enter", "select"),
+	return components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
+		Title:             "Dashboard",
+		ScrollableContent: body.String(),
+		Footer:            components.Help("↑/↓", "navigate") + "  " + components.Help("enter", "select"),
 	})
 }

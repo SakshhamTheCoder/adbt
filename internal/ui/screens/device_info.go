@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"adbt/internal/ui/components"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type deviceAction struct {
@@ -26,7 +28,9 @@ type DeviceInfo struct {
 	confirm components.ConfirmPrompt
 	pending *deviceAction
 
-	toast components.Toast
+	toast   components.Toast
+	details *adb.DeviceDetails
+	loading bool
 }
 
 func NewDeviceInfo(state *state.AppState) *DeviceInfo {
@@ -45,7 +49,11 @@ func NewDeviceInfo(state *state.AppState) *DeviceInfo {
 }
 
 func (d *DeviceInfo) Init() tea.Cmd {
-	return nil
+	if !d.state.HasDevice() {
+		return nil
+	}
+	d.loading = true
+	return adb.FetchDeviceDetailsCmd(d.state.DeviceSerial())
 }
 
 func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -63,13 +71,19 @@ func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case components.ConfirmNoMsg:
 			d.pending = nil
 			d.confirm.Hide()
-			return d, nil
+			return d, tea.Batch()
 		}
 
 		return d, d.confirm.Update(msg)
 	}
 
 	switch msg := msg.(type) {
+
+	case adb.DeviceDetailsMsg:
+		d.loading = false
+		if msg.Error == nil {
+			d.details = &msg.Details
+		}
 
 	case tea.KeyMsg:
 		if !d.state.HasDevice() {
@@ -132,30 +146,79 @@ func (d *DeviceInfo) triggerAction(a deviceAction) tea.Cmd {
 	return a.cmd(d.state.DeviceSerial())
 }
 
+func infoCard(label, value string) string {
+	if value == "" {
+		value = components.StatusMuted.Render("—")
+	}
+	return fmt.Sprintf(
+		"%s  %s",
+		components.StatusMuted.Render(label),
+		lipgloss.NewStyle().Bold(true).Render(value),
+	)
+}
+
 func (d *DeviceInfo) View() string {
 	if !d.state.HasDevice() {
-		return components.RenderLayout(d.state, components.LayoutProps{
-			Title:  "Device Info",
-			Body:   components.StatusDisconnected.Render("No device selected"),
-			Footer: components.Help("esc", "back"),
-		})
+		return components.RenderNoDevice(d.state, "Device Info")
 	}
 
 	dev := d.state.SelectedDevice
+	colWidth := (d.state.Width - 12) / 2
+	if colWidth < 20 {
+		colWidth = 20
+	}
+	colStyle := lipgloss.NewStyle().Width(colWidth)
+
 	var body strings.Builder
 
-	body.WriteString(components.TitleStyle.Render("Device Details") + "\n")
-	body.WriteString(
-		components.KeyValueList([]components.KeyValueRow{
-			{Key: "Model:", Value: dev.Model},
-			{Key: "Serial:", Value: dev.Serial},
-			{Key: "Android:", Value: dev.Android},
-			{Key: "State:", Value: dev.State},
-		}),
-	)
+	body.WriteString(components.TitleStyle.Render("Device") + "\n\n")
 
-	body.WriteString("\n")
-	body.WriteString(components.TitleStyle.Render("Actions") + "\n")
+	body.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
+		colStyle.Render(infoCard("Model", dev.Model)),
+		colStyle.Render(infoCard("Android", dev.Android)),
+	) + "\n")
+
+	body.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
+		colStyle.Render(infoCard("Serial", dev.Serial)),
+		colStyle.Render(infoCard("State", dev.State)),
+	) + "\n")
+
+	body.WriteString("\n" + components.TitleStyle.Render("Details") + "\n\n")
+
+	if d.loading {
+		body.WriteString(components.StatusMuted.Render("  Loading details...") + "\n")
+	} else if d.details != nil {
+		dt := d.details
+
+		batteryVal := dt.BatteryLevel
+		if batteryVal != "" && dt.BatteryStatus != "" {
+			batteryVal += " (" + dt.BatteryStatus + ")"
+		}
+
+		storageVal := ""
+		if dt.StorageUsed != "" && dt.StorageTotal != "" {
+			storageVal = dt.StorageUsed + " / " + dt.StorageTotal
+		}
+
+		screenVal := dt.ScreenSize
+		if screenVal != "" && dt.ScreenDensity != "" {
+			screenVal += " @ " + dt.ScreenDensity + "dpi"
+		}
+
+		body.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
+			colStyle.Render(infoCard("Battery", batteryVal)),
+			colStyle.Render(infoCard("Storage", storageVal)),
+		) + "\n")
+
+		body.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
+			colStyle.Render(infoCard("Screen", screenVal)),
+			colStyle.Render(infoCard("IP", dt.IPAddress)),
+		) + "\n")
+	} else {
+		body.WriteString(components.StatusMuted.Render("  Could not load details") + "\n")
+	}
+
+	body.WriteString("\n" + components.TitleStyle.Render("Actions") + "\n")
 
 	for i, a := range d.actions {
 		line := "  "
@@ -178,21 +241,21 @@ func (d *DeviceInfo) View() string {
 		body.WriteString(line + "\n")
 	}
 
-	if d.confirm.Visible {
-		body.WriteString("\n\n")
-		body.WriteString(d.confirm.View())
-	}
-
-	if d.toast.Visible {
-		body.WriteString("\n\n")
-		body.WriteString(d.toast.View())
-	}
-
-	return components.RenderLayout(d.state, components.LayoutProps{
-		Title: "Device Info",
-		Body:  body.String(),
+	rendered := components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
+		Title:             "Device Info",
+		ScrollableContent: body.String(),
 		Footer: components.Help("↑/↓", "navigate") + "  " +
 			components.Help("enter", "select") + "  " +
 			components.Help("esc", "back"),
 	})
+
+	if d.confirm.Visible {
+		rendered = components.RenderOverlay(rendered, d.confirm.View(), d.state)
+	}
+
+	if d.toast.Visible {
+		rendered = components.RenderOverlay(rendered, d.toast.View(), d.state)
+	}
+
+	return rendered
 }

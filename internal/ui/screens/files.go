@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"os"
 	"path/filepath"
 	"time"
 
@@ -52,7 +53,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case components.ConfirmNoMsg:
 			f.confirm.Hide()
-			return f, nil
+			return f, tea.Batch()
 		}
 
 		return f, f.confirm.Update(msg)
@@ -109,6 +110,43 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			entry := f.files[f.cursor]
 			f.confirm.Show("Delete file:\n" + entry.Name)
+
+		case "p":
+			if len(f.files) == 0 {
+				return f, nil
+			}
+
+			entry := f.files[f.cursor]
+			if entry.IsDir {
+				var cmd tea.Cmd
+				f.toast, cmd = components.ShowToast(
+					"Cannot pull a directory",
+					true,
+					2*time.Second,
+				)
+				return f, cmd
+			}
+
+			home, err := os.UserHomeDir()
+			if err != nil {
+				home = "/tmp"
+			}
+			localPath := filepath.Join(home, "Downloads", entry.Name)
+
+			var toastCmd tea.Cmd
+			f.toast, toastCmd = components.ShowToast(
+				"Pulling "+entry.Name+"...",
+				false,
+				2*time.Second,
+			)
+			return f, tea.Batch(
+				toastCmd,
+				adb.PullFileCmd(
+					f.state.DeviceSerial(),
+					entry.Path,
+					localPath,
+				),
+			)
 
 		case "r":
 			f.cursor = 0
@@ -167,27 +205,42 @@ func (f *Files) View() string {
 		return components.RenderNoDevice(f.state, "Files")
 	}
 
+	var staticContent string
+	staticContent += components.StatusMuted.Render("Path: "+f.path) + "\n"
+
+	if len(f.files) > 0 && f.cursor < len(f.files) {
+		entry := f.files[f.cursor]
+		if entry.Permissions != "" {
+			staticContent += components.StatusMuted.Render(
+				"  "+entry.Permissions,
+			) + "\n"
+		}
+	}
+
 	body := components.FileList(f.files, f.cursor)
 
-	if f.confirm.Visible {
-		body += "\n\n" + f.confirm.View()
-	}
-
-	if f.toast.Visible {
-		body += "\n\n" + f.toast.View()
-	}
-
-	return components.RenderLayoutWithScrollableSection(
+	rendered := components.RenderLayoutWithScrollableSection(
 		f.state,
 		components.LayoutWithScrollProps{
 			Title:             "Files",
-			StaticContent:     components.StatusMuted.Render("Path: "+f.path) + "\n",
+			StaticContent:     staticContent,
 			ScrollableContent: body,
 			Footer: components.Help("enter", "open") + "  " +
 				components.Help("backspace", "up") + "  " +
+				components.Help("p", "pull") + "  " +
 				components.Help("d", "delete") + "  " +
 				components.Help("r", "refresh") + "  " +
 				components.Help("esc", "back"),
 		},
 	)
+
+	if f.confirm.Visible {
+		rendered = components.RenderOverlay(rendered, f.confirm.View(), f.state)
+	}
+
+	if f.toast.Visible {
+		rendered = components.RenderOverlay(rendered, f.toast.View(), f.state)
+	}
+
+	return rendered
 }

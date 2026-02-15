@@ -11,7 +11,6 @@ type Action string
 const (
 	ActionDevices    Action = "devices"
 	ActionLogcat     Action = "logcat"
-	ActionShell      Action = "shell"
 	ActionApps       Action = "apps"
 	ActionFiles      Action = "files"
 	ActionDeviceInfo Action = "device_info"
@@ -35,7 +34,7 @@ func ResolveAction(action Action, state *state.AppState) tea.Cmd {
 			return SwitchScreenMsg{Screen: "logcat"}
 		}
 
-	case ActionShell, ActionApps, ActionFiles:
+	case ActionApps, ActionFiles:
 		if !state.HasDevice() {
 			return func() tea.Msg {
 				return SwitchScreenMsg{Screen: "devices"}
