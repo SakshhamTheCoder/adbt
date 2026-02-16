@@ -1,7 +1,7 @@
 package navigation
 
 import (
-	"adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

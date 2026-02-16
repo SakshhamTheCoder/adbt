@@ -1,6 +1,6 @@
 package state
 
-import "adbt/internal/adb"
+import "github.com/SakshhamTheCoder/adbt/internal/adb"
 
 type AppState struct {
 	SelectedDevice *adb.Device

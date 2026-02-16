@@ -3,10 +3,10 @@ package screens
 import (
 	"strings"
 
-	"adbt/internal/adb"
-	"adbt/internal/state"
-	"adbt/internal/ui/components"
-	"adbt/internal/ui/navigation"
+	"github.com/SakshhamTheCoder/adbt/internal/adb"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/navigation"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

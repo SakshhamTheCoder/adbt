@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"adbt/internal/adb"
+	"github.com/SakshhamTheCoder/adbt/internal/adb"
 )
 
 func DeviceList(devices []adb.Device, cursor int) string {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"adbt/internal/ui"
+	"github.com/SakshhamTheCoder/adbt/internal/ui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

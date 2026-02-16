@@ -3,7 +3,7 @@ package components
 import (
 	"fmt"
 
-	"adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
 )
 
 func RenderHeader(appState *state.AppState, screenName string) string {

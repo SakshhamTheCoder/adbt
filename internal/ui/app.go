@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"adbt/internal/state"
-	"adbt/internal/ui/navigation"
-	"adbt/internal/ui/screens"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/navigation"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/screens"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

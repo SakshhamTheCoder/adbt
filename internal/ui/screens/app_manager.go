@@ -6,9 +6,9 @@ import (
 	"time"
 	"unicode"
 
-	"adbt/internal/adb"
-	"adbt/internal/state"
-	"adbt/internal/ui/components"
+	"github.com/SakshhamTheCoder/adbt/internal/adb"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

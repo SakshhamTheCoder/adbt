@@ -3,7 +3,7 @@ package components
 import (
 	"strings"
 
-	"adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/state"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"

@@ -1,4 +1,4 @@
-module adbt
+module github.com/SakshhamTheCoder/adbt
 
 go 1.24.0
 

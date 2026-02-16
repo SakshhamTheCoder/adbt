@@ -3,7 +3,7 @@ package components
 import (
 	"fmt"
 
-	"adbt/internal/adb"
+	"github.com/SakshhamTheCoder/adbt/internal/adb"
 )
 
 func FileList(files []adb.FileEntry, cursor int) string {
