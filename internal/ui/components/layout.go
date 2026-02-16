@@ -80,6 +80,14 @@ func RenderLayoutWithScrollableSection(state *state.AppState, props LayoutWithSc
 	return b.String()
 }
 
+func RenderLayout(state *state.AppState, title, content, footer string) string {
+	return RenderLayoutWithScrollableSection(state, LayoutWithScrollProps{
+		Title:             title,
+		ScrollableContent: content,
+		Footer:            footer,
+	})
+}
+
 func UpdateViewport(screenTitle string, msg tea.Msg) tea.Cmd {
 	vp, exists := viewports[screenTitle]
 	if !exists {

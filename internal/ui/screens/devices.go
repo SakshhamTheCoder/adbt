@@ -7,6 +7,7 @@ import (
 	"adbt/internal/adb"
 	"adbt/internal/state"
 	"adbt/internal/ui/components"
+	"adbt/internal/ui/navigation"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -95,7 +96,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(d.state.Devices) > 0 {
 				d.state.SelectDevice(&d.state.Devices[d.cursor])
 				return d, func() tea.Msg {
-					return SwitchScreenMsg{Screen: "dashboard"}
+					return navigation.SwitchScreenMsg{Screen: "dashboard"}
 				}
 			}
 

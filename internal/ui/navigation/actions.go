@@ -1,4 +1,4 @@
-package screens
+package navigation
 
 import (
 	"adbt/internal/state"
@@ -9,11 +9,12 @@ import (
 type Action string
 
 const (
-	ActionDevices    Action = "devices"
-	ActionLogcat     Action = "logcat"
-	ActionApps       Action = "apps"
-	ActionFiles      Action = "files"
-	ActionDeviceInfo Action = "device_info"
+	ActionDevices     Action = "devices"
+	ActionLogcat      Action = "logcat"
+	ActionApps        Action = "apps"
+	ActionFiles       Action = "files"
+	ActionPerfMonitor Action = "perf_monitor"
+	ActionDeviceInfo  Action = "device_info"
 )
 
 func ResolveAction(action Action, state *state.AppState) tea.Cmd {
@@ -52,6 +53,16 @@ func ResolveAction(action Action, state *state.AppState) tea.Cmd {
 		}
 		return func() tea.Msg {
 			return SwitchScreenMsg{Screen: "device_info"}
+		}
+
+	case ActionPerfMonitor:
+		if !state.HasDevice() {
+			return func() tea.Msg {
+				return SwitchScreenMsg{Screen: "devices"}
+			}
+		}
+		return func() tea.Msg {
+			return SwitchScreenMsg{Screen: "perf_monitor"}
 		}
 	}
 

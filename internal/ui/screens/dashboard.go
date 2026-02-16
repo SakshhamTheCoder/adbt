@@ -6,6 +6,7 @@ import (
 	"adbt/internal/adb"
 	"adbt/internal/state"
 	"adbt/internal/ui/components"
+	"adbt/internal/ui/navigation"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -14,7 +15,7 @@ type menuItem struct {
 	key           string
 	label         string
 	description   string
-	action        Action
+	action        navigation.Action
 	requireDevice bool
 }
 
@@ -29,11 +30,12 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 	return &Dashboard{
 		state: appState,
 		menuItems: []menuItem{
-			{"d", "Devices", "View and select connected devices", ActionDevices, false},
-			{"i", "Device Info", "View device details and controls", ActionDeviceInfo, true},
-			{"l", "Logcat", "View live device logs", ActionLogcat, true},
-			{"a", "Apps", "Manage installed applications", ActionApps, true},
-			{"f", "Files", "Browse device file system", ActionFiles, true},
+			{"d", "Devices", "View and select connected devices", navigation.ActionDevices, false},
+			{"i", "Device Info", "View device details and controls", navigation.ActionDeviceInfo, true},
+			{"l", "Logcat", "View live device logs", navigation.ActionLogcat, true},
+			{"a", "Apps", "Manage installed applications", navigation.ActionApps, true},
+			{"f", "Files", "Browse device file system", navigation.ActionFiles, true},
+			{"m", "Monitor", "Performance stats (CPU, RAM, Net)", navigation.ActionPerfMonitor, true},
 		},
 	}
 }
@@ -67,11 +69,11 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			item := d.menuItems[d.cursor]
-			return d, ResolveAction(item.action, d.state)
+			return d, navigation.ResolveAction(item.action, d.state)
 		default:
 			for _, item := range d.menuItems {
 				if msg.String() == item.key {
-					return d, ResolveAction(item.action, d.state)
+					return d, navigation.ResolveAction(item.action, d.state)
 				}
 			}
 		}

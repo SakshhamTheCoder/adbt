@@ -2,6 +2,7 @@ package ui
 
 import (
 	"adbt/internal/state"
+	"adbt/internal/ui/navigation"
 	"adbt/internal/ui/screens"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -50,7 +51,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		}
 
-	case screens.SwitchScreenMsg:
+	case navigation.SwitchScreenMsg:
 		return a.switchScreen(msg.Screen)
 	}
 
@@ -75,6 +76,8 @@ func (a *App) switchScreen(name string) (*App, tea.Cmd) {
 		newScreen = screens.NewFiles(a.state)
 	case "logcat":
 		newScreen = screens.NewLogcat(a.state)
+	case "perf_monitor":
+		newScreen = screens.NewPerfMonitor(a.state)
 
 	default:
 		return a, nil
