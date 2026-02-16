@@ -1,47 +1,32 @@
-name: Build adbt
+name: goreleaser
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
-  build:
+  goreleaser:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        os: [linux, darwin, windows]
-        arch: [amd64, arm64]
-
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
+      
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
-
-      - name: Build
-        run: |
-          mkdir -p dist
-
-          BIN=adbt-${{ matrix.os }}-${{ matrix.arch }}
-          if [ "${{ matrix.os }}" = "windows" ]; then
-            BIN="$BIN.exe"
-          fi
-
-          CGO_ENABLED=0 \
-          GOOS=${{ matrix.os }} \
-          GOARCH=${{ matrix.arch }} \
-          go build -o dist/$BIN ./cmd/adbt/main.go
-
-      - name: Upload to latest release
-        uses: softprops/action-gh-release@v2
+          go-version: stable
+      
+      - uses: goreleaser/goreleaser-action@v6
         with:
-          tag_name: latest
-          name: Latest
-          prerelease: false
-          files: dist/*
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          AUR_KEY: ${{ secrets.AUR_KEY }}

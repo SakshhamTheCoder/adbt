@@ -1,0 +1,110 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - main: ./cmd/adbt
+    binary: adbt
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# Homebrew Cask (Recommended for v2 binaries)
+# Users run: brew install --cask SakshhamTheCoder/tap/adbt
+homebrew_casks:
+  - repository:
+      owner: SakshhamTheCoder
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    
+    homepage: "https://github.com/SakshhamTheCoder/adbt"
+    description: "A modern, keyboard-driven Android Debug Bridge TUI."
+    license: "MIT"
+
+# Scoop Bucket
+scoops:
+  - repository:
+      owner: SakshhamTheCoder
+      name: scoop-bucket
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    
+    homepage: "https://github.com/SakshhamTheCoder/adbt"
+    description: "A modern, keyboard-driven Android Debug Bridge TUI."
+    license: "MIT"
+
+# Helper for Linux Packages (DEB, RPM)
+nfpms:
+  - id: adbt
+    package_name: adbt
+    vendor: "SakshhamTheCoder"
+    homepage: "https://github.com/SakshhamTheCoder/adbt"
+    maintainer: "Sakshham Bhagat <sakshhamtg@gmail.com>"
+    description: "A modern, keyboard-driven Android Debug Bridge TUI."
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    
+    contents:
+      - src: ./README.md
+        dst: /usr/share/doc/adbt/README.md
+      - src: ./LICENSE
+        dst: /usr/share/doc/adbt/LICENSE
+
+# Arch Linux User Repository (AUR)
+# Arch Linux User Repository (AUR) - Disabled for now
+# aurs:
+#   - name: adbt-bin
+#     homepage: "https://github.com/SakshhamTheCoder/adbt"
+#     description: "A modern, keyboard-driven Android Debug Bridge TUI."
+#     maintainers:
+#       - "Sakshham Bhagat <sakshhamtg@gmail.com>"
+#     license: "MIT"
+#     private_key: "{{ .Env.AUR_KEY }}"
+#     git_url: "ssh://aur@aur.archlinux.org/adbt-bin.git"
+#     
+#     # Explicitly define installation instructions as recommended by documentation
+#     package: |-
+#       # bin
+#       install -Dm755 "./adbt" "${pkgdir}/usr/bin/adbt"
+#
+#       # license
+#       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/adbt/LICENSE"
+#
+#       # readme
+#       install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/adbt/README.md"
