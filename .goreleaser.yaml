@@ -55,6 +55,12 @@ homebrew_casks:
     homepage: "https://github.com/SakshhamTheCoder/adbt"
     description: "A modern, keyboard-driven Android Debug Bridge TUI."
     license: "MIT"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/adbt"]
+          end
 
 # Scoop Bucket
 scoops:
