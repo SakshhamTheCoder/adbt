@@ -110,27 +110,27 @@ aurs:
       install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/adbt/README.md"
 
 # Winget (Windows Package Manager)
-winget:
-  - name: adbt
-    publisher: SakshhamTheCoder
-    license: MIT
-    license_url: "https://github.com/SakshhamTheCoder/adbt/blob/main/LICENSE"
-    copyright: "Copyright (c) 2026 Sakshham Bhagat"
-    homepage: "https://github.com/SakshhamTheCoder/adbt"
-    short_description: "A modern, keyboard-driven Android Debug Bridge TUI."
-    description: "adbt is a TUI for interacting with Android devices using ADB."
+# winget:
+#   - name: adbt
+#     publisher: SakshhamTheCoder
+#     license: MIT
+#     license_url: "https://github.com/SakshhamTheCoder/adbt/blob/main/LICENSE"
+#     copyright: "Copyright (c) 2026 Sakshham Bhagat"
+#     homepage: "https://github.com/SakshhamTheCoder/adbt"
+#     short_description: "A modern, keyboard-driven Android Debug Bridge TUI."
+#     description: "adbt is a TUI for interacting with Android devices using ADB."
     
-    # Auto-PR to Microsoft Winget Repo
-    repository:
-      owner: SakshhamTheCoder
-      name: winget-pkgs
-      branch: "adbt-{{.Version}}"
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-      pull_request:
-        enabled: true
-        base:
-          owner: microsoft
-          name: winget-pkgs
-          branch: master
+#     # Auto-PR to Microsoft Winget Repo
+#     repository:
+#       owner: SakshhamTheCoder
+#       name: winget-pkgs
+#       branch: "adbt-{{.Version}}"
+#       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+#       pull_request:
+#         enabled: true
+#         base:
+#           owner: microsoft
+#           name: winget-pkgs
+#           branch: master
     
-    url_template: "https://github.com/SakshhamTheCoder/adbt/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+#     url_template: "https://github.com/SakshhamTheCoder/adbt/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
