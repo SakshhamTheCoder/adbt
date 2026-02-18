@@ -93,24 +93,44 @@ nfpms:
         dst: /usr/share/doc/adbt/LICENSE
 
 # Arch Linux User Repository (AUR)
-# Arch Linux User Repository (AUR) - Disabled for now
-# aurs:
-#   - name: adbt-bin
-#     homepage: "https://github.com/SakshhamTheCoder/adbt"
-#     description: "A modern, keyboard-driven Android Debug Bridge TUI."
-#     maintainers:
-#       - "Sakshham Bhagat <sakshhamtg@gmail.com>"
-#     license: "MIT"
-#     private_key: "{{ .Env.AUR_KEY }}"
-#     git_url: "ssh://aur@aur.archlinux.org/adbt-bin.git"
-#     
-#     # Explicitly define installation instructions as recommended by documentation
-#     package: |-
-#       # bin
-#       install -Dm755 "./adbt" "${pkgdir}/usr/bin/adbt"
-#
-#       # license
-#       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/adbt/LICENSE"
-#
-#       # readme
-#       install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/adbt/README.md"
+aurs:
+  - name: adbt-bin
+    homepage: "https://github.com/SakshhamTheCoder/adbt"
+    description: "A modern, keyboard-driven Android Debug Bridge TUI."
+    maintainers:
+      - "Sakshham Bhagat <sakshhamtg@gmail.com>"
+    license: "MIT"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/adbt-bin.git"
+    
+    # Installation instructions
+    package: |-
+      install -Dm755 "./adbt" "${pkgdir}/usr/bin/adbt"
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/adbt/LICENSE"
+      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/adbt/README.md"
+
+# Winget (Windows Package Manager)
+winget:
+  - name: adbt
+    publisher: SakshhamTheCoder
+    license: MIT
+    license_url: "https://github.com/SakshhamTheCoder/adbt/blob/main/LICENSE"
+    copyright: "Copyright (c) 2026 Sakshham Bhagat"
+    homepage: "https://github.com/SakshhamTheCoder/adbt"
+    short_description: "A modern, keyboard-driven Android Debug Bridge TUI."
+    description: "adbt is a TUI for interacting with Android devices using ADB."
+    
+    # Auto-PR to Microsoft Winget Repo
+    repository:
+      owner: SakshhamTheCoder
+      name: winget-pkgs
+      branch: "adbt-{{.Version}}"
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+      pull_request:
+        enabled: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+    
+    url_template: "https://github.com/SakshhamTheCoder/adbt/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
