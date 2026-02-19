@@ -73,22 +73,24 @@ brew install --cask adbt
 
 ### Scoop (Windows)
 
-```powershell
+```bash
 scoop bucket add SakshhamTheCoder https://github.com/SakshhamTheCoder/scoop-bucket
 scoop install adbt
 ```
 
-### Linux Packages
+### AUR (Arch Linux)
 
-Download the `.deb` or `.rpm` files from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
-
-### Go Install
+Install the prebuilt package from AUR (adbt-bin):
 
 ```bash
-go install github.com/SakshhamTheCoder/adbt/cmd/adbt@latest
+yay -S adbt-bin
+# or
+paru -S adbt-bin
 ```
 
----
+### Linux Packages
+
+## Download the `.deb` or `.rpm` files from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
 
 ## Keyboard Shortcuts
 
