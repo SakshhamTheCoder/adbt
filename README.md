@@ -90,7 +90,7 @@ paru -S adbt-bin
 
 ### Linux Packages
 
-## Download the `.deb` or `.rpm` files from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
+Download the `.deb` or `.rpm` files from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
 
 ## Keyboard Shortcuts
 
