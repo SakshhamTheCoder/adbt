@@ -38,6 +38,8 @@ type AppManager struct {
 	confirm components.ConfirmPrompt
 	toast   components.Toast
 	pending string
+
+	installForm components.FormModal
 }
 
 func NewAppManager(state *state.AppState) *AppManager {
@@ -94,6 +96,31 @@ func (a *AppManager) selectedApp() *adb.App {
 func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	a.toast.Update(msg)
 
+	if a.installForm.Visible {
+		switch msg := msg.(type) {
+		case components.FormSubmitMsg:
+			values := msg.Values
+			a.installForm.Hide()
+			if len(values) > 0 && values[0] != "" {
+				var toastCmd tea.Cmd
+				a.toast, toastCmd = components.ShowToast(
+					"Installing APK...",
+					false,
+					2*time.Second,
+				)
+				return a, tea.Batch(
+					toastCmd,
+					adb.InstallAppCmd(a.state.DeviceSerial(), values[0]),
+				)
+			}
+			return a, nil
+		case components.FormCancelMsg:
+			a.installForm.Hide()
+			return a, nil
+		}
+		return a, a.installForm.Update(msg)
+	}
+
 	if a.confirm.Visible {
 		switch msg.(type) {
 
@@ -149,7 +176,7 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			false,
 			2*time.Second,
 		)
-		if msg.Action == "uninstall" {
+		if msg.Action == "uninstall" || msg.Action == "install" {
 			return a, tea.Batch(
 				cmd,
 				adb.ListAppsCmd(a.state.DeviceSerial()),
@@ -251,6 +278,11 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				components.ViewportGotoTop("Apps")
 				return a, adb.ListAppsCmd(a.state.DeviceSerial())
 			}
+
+		case "i":
+			a.installForm.Show("Install APK", []components.FormField{
+				{Label: "APK Path", Value: ""},
+			})
 
 		case "f":
 			a.filterType = (a.filterType + 1) % 3
@@ -364,6 +396,7 @@ func (a *AppManager) View() string {
 	} else {
 		footer = components.Help("↑/↓", "navigate") + "  " +
 			components.Help("enter", "launch") + "  " +
+			components.Help("i", "install") + "  " +
 			components.Help("s", "stop") + "  " +
 			components.Help("u", "uninstall") + "  " +
 			components.Help("x", "clear") + "  " +
@@ -379,6 +412,10 @@ func (a *AppManager) View() string {
 		ScrollableContent: scrollableContent.String(),
 		Footer:            footer,
 	})
+
+	if a.installForm.Visible {
+		rendered = components.RenderOverlay(rendered, a.installForm.View(), a.state)
+	}
 
 	if a.confirm.Visible {
 		rendered = components.RenderOverlay(rendered, a.confirm.View(), a.state)

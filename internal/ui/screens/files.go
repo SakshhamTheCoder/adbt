@@ -19,8 +19,9 @@ type Files struct {
 	files  []adb.FileEntry
 	cursor int
 
-	confirm components.ConfirmPrompt
-	toast   components.Toast
+	confirm  components.ConfirmPrompt
+	toast    components.Toast
+	pushForm components.FormModal
 }
 
 func NewFiles(state *state.AppState) *Files {
@@ -39,6 +40,35 @@ func (f *Files) Init() tea.Cmd {
 
 func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	f.toast.Update(msg)
+
+	if f.pushForm.Visible {
+		switch msg := msg.(type) {
+		case components.FormSubmitMsg:
+			values := msg.Values
+			f.pushForm.Hide()
+			if len(values) > 0 && values[0] != "" {
+				var toastCmd tea.Cmd
+				f.toast, toastCmd = components.ShowToast(
+					"Pushing file...",
+					false,
+					2*time.Second,
+				)
+				return f, tea.Batch(
+					toastCmd,
+					adb.PushFileCmd(
+						f.state.DeviceSerial(),
+						values[0],
+						f.path,
+					),
+				)
+			}
+			return f, nil
+		case components.FormCancelMsg:
+			f.pushForm.Hide()
+			return f, nil
+		}
+		return f, f.pushForm.Update(msg)
+	}
 
 	if f.confirm.Visible {
 		switch msg.(type) {
@@ -155,6 +185,11 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				f.state.DeviceSerial(),
 				f.path,
 			)
+
+		case "u":
+			f.pushForm.Show("Push File", []components.FormField{
+				{Label: "Local Path", Value: ""},
+			})
 		}
 
 	case adb.FilesLoadedMsg:
@@ -228,11 +263,16 @@ func (f *Files) View() string {
 			Footer: components.Help("enter", "open") + "  " +
 				components.Help("backspace", "up") + "  " +
 				components.Help("p", "pull") + "  " +
+				components.Help("u", "push") + "  " +
 				components.Help("d", "delete") + "  " +
 				components.Help("r", "refresh") + "  " +
 				components.Help("esc", "back"),
 		},
 	)
+
+	if f.pushForm.Visible {
+		rendered = components.RenderOverlay(rendered, f.pushForm.View(), f.state)
+	}
 
 	if f.confirm.Visible {
 		rendered = components.RenderOverlay(rendered, f.confirm.View(), f.state)

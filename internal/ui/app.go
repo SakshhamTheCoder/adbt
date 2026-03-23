@@ -78,6 +78,10 @@ func (a *App) switchScreen(name string) (*App, tea.Cmd) {
 		newScreen = screens.NewLogcat(a.state)
 	case "perf_monitor":
 		newScreen = screens.NewPerfMonitor(a.state)
+	case "intents":
+		newScreen = screens.NewIntents(a.state)
+	case "ports":
+		newScreen = screens.NewPorts(a.state)
 
 	default:
 		return a, nil

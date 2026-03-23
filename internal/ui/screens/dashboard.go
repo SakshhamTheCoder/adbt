@@ -36,6 +36,8 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 			{"a", "Apps", "Manage installed applications", navigation.ActionApps, true},
 			{"f", "Files", "Browse device file system", navigation.ActionFiles, true},
 			{"m", "Monitor", "Performance stats (CPU, RAM, Net)", navigation.ActionPerfMonitor, true},
+			{"t", "Intent Tester", "Test deep links and intents", navigation.ActionIntents, true},
+			{"p", "Port Forwarding", "Manage adb port forwarding", navigation.ActionPorts, true},
 		},
 	}
 }

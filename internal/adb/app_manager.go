@@ -162,6 +162,20 @@ func ClearAppDataCmd(serial, pkg string) tea.Cmd {
 	}
 }
 
+func InstallAppCmd(serial, localApkPath string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := ExecuteCommand(
+			serial,
+			"install",
+			localApkPath,
+		)
+		if err != nil {
+			return AppActionErrorMsg{Action: "install", Error: err}
+		}
+		return AppActionResultMsg{Action: "install"}
+	}
+}
+
 func isSystemApp(apkPath string) bool {
 	return strings.HasPrefix(apkPath, "/system") ||
 		strings.HasPrefix(apkPath, "/vendor") ||

@@ -15,6 +15,8 @@ const (
 	ActionFiles       Action = "files"
 	ActionPerfMonitor Action = "perf_monitor"
 	ActionDeviceInfo  Action = "device_info"
+	ActionIntents     Action = "intents"
+	ActionPorts       Action = "ports"
 )
 
 func ResolveAction(action Action, state *state.AppState) tea.Cmd {
@@ -63,6 +65,26 @@ func ResolveAction(action Action, state *state.AppState) tea.Cmd {
 		}
 		return func() tea.Msg {
 			return SwitchScreenMsg{Screen: "perf_monitor"}
+		}
+
+	case ActionIntents:
+		if !state.HasDevice() {
+			return func() tea.Msg {
+				return SwitchScreenMsg{Screen: "devices"}
+			}
+		}
+		return func() tea.Msg {
+			return SwitchScreenMsg{Screen: "intents"}
+		}
+
+	case ActionPorts:
+		if !state.HasDevice() {
+			return func() tea.Msg {
+				return SwitchScreenMsg{Screen: "devices"}
+			}
+		}
+		return func() tea.Msg {
+			return SwitchScreenMsg{Screen: "ports"}
 		}
 	}
 
