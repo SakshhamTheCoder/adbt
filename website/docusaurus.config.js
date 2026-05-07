@@ -8,16 +8,16 @@ const config = {
   tagline: 'Modern, keyboard-driven Terminal User Interface for Android Debug Bridge.',
   favicon: 'img/logoadbt.png',
 
-  future: {
-    v4: true,
-  },
+  // future: {
+  //   v4: true,
+  // },
 
   url: 'https://adbt-tui.vercel.app',
   baseUrl: '/',
 
   organizationName: 'SakshhamTheCoder',
   projectName: 'adbt',
-  trailingSlash: false,
+  trailingSlash: true,
 
   onBrokenLinks: 'throw',
   
