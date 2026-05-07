@@ -12,7 +12,7 @@ const config = {
     v4: true,
   },
 
-  url: 'https://adbt.vercel.app',
+  url: 'https://adbt-tui.vercel.app',
   baseUrl: '/',
 
   organizationName: 'SakshhamTheCoder',
