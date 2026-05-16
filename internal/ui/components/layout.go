@@ -6,21 +6,20 @@ import (
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 
 	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-type LayoutWithScrollProps struct {
+type ScrollableLayoutProps struct {
 	Title             string
 	StaticContent     string
 	ScrollableContent string
 	Footer            string
+	Viewport          *viewport.Model
 }
 
-var viewports = make(map[string]*viewport.Model)
-var viewportsReady = make(map[string]bool)
+type LayoutWithScrollProps = ScrollableLayoutProps
 
-func RenderLayoutWithScrollableSection(state *state.AppState, props LayoutWithScrollProps) string {
+func RenderLayoutWithScrollableSection(state *state.AppState, props ScrollableLayoutProps) string {
 	var b strings.Builder
 
 	b.WriteString(RenderHeader(state, props.Title) + "\n")
@@ -37,14 +36,12 @@ func RenderLayoutWithScrollableSection(state *state.AppState, props LayoutWithSc
 		scrollableHeight = 5
 	}
 
-	screenKey := props.Title
-	vp, exists := viewports[screenKey]
-
-	if !exists || !viewportsReady[screenKey] {
-		newVp := viewport.New(contentWidth, scrollableHeight)
-		viewports[screenKey] = &newVp
-		vp = &newVp
-		viewportsReady[screenKey] = true
+	vp := props.Viewport
+	if vp == nil {
+		temp := viewport.New(contentWidth, scrollableHeight)
+		vp = &temp
+	} else if vp.Width == 0 && vp.Height == 0 {
+		*vp = viewport.New(contentWidth, scrollableHeight)
 	}
 
 	vp.Width = contentWidth
@@ -88,51 +85,12 @@ func RenderLayout(state *state.AppState, title, content, footer string) string {
 	})
 }
 
-func UpdateViewport(screenTitle string, msg tea.Msg) tea.Cmd {
-	vp, exists := viewports[screenTitle]
-	if !exists {
-		return nil
-	}
-
-	var cmd tea.Cmd
-	*vp, cmd = vp.Update(msg)
-	return cmd
-}
-
-func ViewportGotoTop(screenTitle string) {
-	if vp, exists := viewports[screenTitle]; exists {
-		vp.GotoTop()
-	}
-}
-
-func ViewportGotoBottom(screenTitle string) {
-	if vp, exists := viewports[screenTitle]; exists {
-		vp.GotoBottom()
-	}
-}
-
 func RenderNoDevice(state *state.AppState, title string) string {
 	return RenderLayoutWithScrollableSection(state, LayoutWithScrollProps{
 		Title:             title,
 		ScrollableContent: StatusDisconnected.Render("No device selected"),
 		Footer:            Help("esc", "back"),
 	})
-}
-
-func ViewportEnsureVisible(screenTitle string, line int) {
-	vp, exists := viewports[screenTitle]
-	if !exists {
-		return
-	}
-
-	top := vp.YOffset
-	bottom := vp.YOffset + vp.Height - 1
-
-	if line < top {
-		vp.YOffset = line
-	} else if line > bottom {
-		vp.YOffset = line - vp.Height + 1
-	}
 }
 
 func RenderOverlay(base, overlay string, s *state.AppState) string {
@@ -161,6 +119,40 @@ func RenderOverlay(base, overlay string, s *state.AppState) string {
 		}
 
 		baseLines[row] = leftPad + oLine
+	}
+
+	return strings.Join(baseLines, "\n")
+}
+
+func RenderFormOverlay(base string, form FormModal, s *state.AppState) string {
+	formView := form.View()
+	rendered := RenderOverlay(base, formView, s)
+	if !form.PickerVisible() {
+		return rendered
+	}
+
+	picker := form.PickerView()
+	return RenderOverlay(rendered, picker, s)
+}
+
+func RenderOverlayAt(base, overlay string, x, y int) string {
+	baseLines := strings.Split(base, "\n")
+	overlayLines := strings.Split(overlay, "\n")
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+
+	for i, oLine := range overlayLines {
+		row := y + i
+		if row < 0 || row >= len(baseLines) {
+			continue
+		}
+
+		prefix := strings.Repeat(" ", x)
+		baseLines[row] = prefix + oLine
 	}
 
 	return strings.Join(baseLines, "\n")

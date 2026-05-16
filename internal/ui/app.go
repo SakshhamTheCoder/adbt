@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/SakshhamTheCoder/adbt/internal/state"
+	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/navigation"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/screens"
 
@@ -12,6 +13,11 @@ type App struct {
 	state         *state.AppState
 	currentScreen tea.Model
 	screenName    string
+}
+
+type LifecycleScreen interface {
+	tea.Model
+	Cleanup() tea.Cmd
 }
 
 func NewApp() *App {
@@ -25,7 +31,7 @@ func NewApp() *App {
 }
 
 func (a *App) Init() tea.Cmd {
-	return a.currentScreen.Init()
+	return tea.Batch(a.setAppTitle(), a.currentScreen.Init())
 }
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -37,7 +43,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return a, tea.Quit
+			return a, tea.Batch(a.cleanupCurrentScreen(), tea.Quit)
 
 		case "esc":
 			var cmd tea.Cmd
@@ -87,9 +93,10 @@ func (a *App) switchScreen(name string) (*App, tea.Cmd) {
 		return a, nil
 	}
 
+	cleanupCmd := a.cleanupCurrentScreen()
 	a.currentScreen = newScreen
 	a.screenName = name
-	return a, newScreen.Init()
+	return a, tea.Batch(cleanupCmd, a.setAppTitle(), newScreen.Init())
 }
 
 func (a *App) View() string {
@@ -97,4 +104,43 @@ func (a *App) View() string {
 		return "Initializing..."
 	}
 	return a.currentScreen.View()
+}
+
+func (a *App) cleanupCurrentScreen() tea.Cmd {
+	screen, ok := a.currentScreen.(LifecycleScreen)
+	if !ok {
+		return nil
+	}
+	return screen.Cleanup()
+}
+
+func (a *App) setAppTitle() tea.Cmd {
+	// ADBT explicitly requests its title on startup and screen switches. Some
+	// terminals with shell integration may still override titles temporarily.
+	return tea.SetWindowTitle(components.ShellTitle(a.state, screenDisplayTitle(a.screenName)))
+}
+
+func screenDisplayTitle(name string) string {
+	switch name {
+	case "apps":
+		return "Apps"
+	case "dashboard":
+		return "Dashboard"
+	case "devices":
+		return "Device Selection"
+	case "device_info":
+		return "Device Info"
+	case "files":
+		return "Files"
+	case "logcat":
+		return "Logcat"
+	case "perf_monitor":
+		return "Performance"
+	case "intents":
+		return "Intents"
+	case "ports":
+		return "Ports"
+	default:
+		return name
+	}
 }
