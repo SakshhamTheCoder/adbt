@@ -3,6 +3,7 @@ package adb
 import (
 	"bufio"
 	"os/exec"
+	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -10,6 +11,8 @@ import (
 type LogcatSession struct {
 	cmd     *exec.Cmd
 	scanner *bufio.Scanner
+	mu      sync.Mutex
+	stopped bool
 }
 
 type LogcatStartedMsg struct {
@@ -60,7 +63,31 @@ func NextLogcatLineCmd(s *LogcatSession) tea.Cmd {
 			return LogcatErrorMsg{Error: err}
 		}
 
-		_ = s.cmd.Wait()
+		_ = s.Stop()
 		return LogcatStoppedMsg{}
 	}
+}
+
+func (s *LogcatSession) Stop() error {
+	if s == nil || s.cmd == nil {
+		return nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.stopped {
+		return nil
+	}
+	s.stopped = true
+
+	if s.cmd.Process == nil {
+		return nil
+	}
+
+	if s.cmd.ProcessState == nil || !s.cmd.ProcessState.Exited() {
+		_ = s.cmd.Process.Kill()
+	}
+
+	return s.cmd.Wait()
 }
