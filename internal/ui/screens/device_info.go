@@ -162,7 +162,10 @@ func (d *DeviceInfo) View() string {
 		return components.RenderNoDevice(d.state, "Device Info")
 	}
 
-	dev := d.state.SelectedDevice
+	dev := d.state.SelectedDevice()
+	if dev == nil {
+		return components.RenderNoDevice(d.state, "Device Info")
+	}
 	colWidth := (d.state.Width - 12) / 2
 	if colWidth < 20 {
 		colWidth = 20

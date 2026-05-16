@@ -55,7 +55,7 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Error == nil {
 			d.state.Devices = msg.Devices
 			if len(msg.Devices) == 1 && msg.Devices[0].IsConnected() {
-				d.state.SelectDevice(&msg.Devices[0])
+				d.state.SelectDevice(msg.Devices[0].Serial)
 			}
 		}
 
@@ -91,8 +91,7 @@ func (d *Dashboard) View() string {
 	} else {
 		body.WriteString(components.TitleStyle.Render("Device") + "\n")
 
-		if d.state.HasDevice() {
-			dev := d.state.SelectedDevice
+		if dev := d.state.SelectedDevice(); dev != nil {
 			body.WriteString(
 				components.KeyValueList([]components.KeyValueRow{
 					{Key: "Status:", Value: components.StatusConnected.Render("● Connected")},

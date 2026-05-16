@@ -26,8 +26,7 @@ type PerfMonitor struct {
 	rxRate     uint64 // bytes per second
 	txRate     uint64 // bytes per second
 
-	// Ticker
-	sub chan struct{}
+	active bool
 }
 
 type TickMsg time.Time
@@ -35,11 +34,14 @@ type TickMsg time.Time
 func NewPerfMonitor(state *state.AppState) *PerfMonitor {
 	return &PerfMonitor{
 		state: state,
-		sub:   make(chan struct{}),
 	}
 }
 
 func (m *PerfMonitor) Init() tea.Cmd {
+	if !m.state.HasDevice() {
+		return nil
+	}
+	m.active = true
 	return tea.Batch(
 		adb.GetSystemStatsCmd(m.state.DeviceSerial()),
 		m.tickCmd(),
@@ -61,8 +63,8 @@ func (m *PerfMonitor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case TickMsg:
-		if !m.state.HasDevice() {
-			return m, m.tickCmd()
+		if !m.active || !m.state.HasDevice() {
+			return m, nil
 		}
 		return m, tea.Batch(
 			adb.GetSystemStatsCmd(m.state.DeviceSerial()),
@@ -103,6 +105,11 @@ func (m *PerfMonitor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *PerfMonitor) Cleanup() tea.Cmd {
+	m.active = false
+	return nil
 }
 
 func (m *PerfMonitor) View() string {

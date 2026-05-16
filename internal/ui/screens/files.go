@@ -9,6 +9,7 @@ import (
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -19,6 +20,8 @@ type Files struct {
 	files  []adb.FileEntry
 	cursor int
 
+	viewport viewport.Model
+
 	confirm  components.ConfirmPrompt
 	toast    components.Toast
 	pushForm components.FormModal
@@ -26,8 +29,9 @@ type Files struct {
 
 func NewFiles(state *state.AppState) *Files {
 	return &Files{
-		state: state,
-		path:  "/sdcard",
+		state:    state,
+		path:     "/sdcard",
+		viewport: viewport.New(0, 0),
 	}
 }
 
@@ -97,13 +101,13 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if f.cursor > 0 {
 				f.cursor--
-				components.ViewportEnsureVisible("Files", f.cursor)
+				f.ensureCursorVisible()
 			}
 
 		case "down", "j":
 			if f.cursor < len(f.files)-1 {
 				f.cursor++
-				components.ViewportEnsureVisible("Files", f.cursor)
+				f.ensureCursorVisible()
 			}
 
 		case "enter":
@@ -115,7 +119,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if entry.IsDir {
 				f.path = entry.Path
 				f.cursor = 0
-				components.ViewportGotoTop("Files")
+				f.gotoTop()
 				return f, adb.ListFilesCmd(
 					f.state.DeviceSerial(),
 					f.path,
@@ -127,7 +131,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if parent != f.path {
 				f.path = parent
 				f.cursor = 0
-				components.ViewportGotoTop("Files")
+				f.gotoTop()
 				return f, adb.ListFilesCmd(
 					f.state.DeviceSerial(),
 					f.path,
@@ -180,7 +184,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "r":
 			f.cursor = 0
-			components.ViewportGotoTop("Files")
+			f.gotoTop()
 			return f, adb.ListFilesCmd(
 				f.state.DeviceSerial(),
 				f.path,
@@ -190,6 +194,9 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			f.pushForm.Show("Push File", []components.FormField{
 				{Label: "Local Path", Value: ""},
 			})
+
+		default:
+			return f, f.updateViewport(msg)
 		}
 
 	case adb.FilesLoadedMsg:
@@ -207,7 +214,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if f.cursor >= len(f.files) {
 			f.cursor = 0
 		}
-		components.ViewportGotoTop("Files")
+		f.gotoTop()
 
 	case adb.FileActionResultMsg:
 		if msg.Error != nil {
@@ -267,11 +274,12 @@ func (f *Files) View() string {
 				components.Help("d", "delete") + "  " +
 				components.Help("r", "refresh") + "  " +
 				components.Help("esc", "back"),
+			Viewport: &f.viewport,
 		},
 	)
 
 	if f.pushForm.Visible {
-		rendered = components.RenderOverlay(rendered, f.pushForm.View(), f.state)
+		rendered = components.RenderFormOverlay(rendered, f.pushForm, f.state)
 	}
 
 	if f.confirm.Visible {
@@ -283,4 +291,18 @@ func (f *Files) View() string {
 	}
 
 	return rendered
+}
+
+func (f *Files) updateViewport(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	f.viewport, cmd = f.viewport.Update(msg)
+	return cmd
+}
+
+func (f *Files) gotoTop() {
+	f.viewport.GotoTop()
+}
+
+func (f *Files) ensureCursorVisible() {
+	ensureViewportLineVisible(&f.viewport, f.cursor)
 }

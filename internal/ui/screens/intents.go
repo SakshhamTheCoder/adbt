@@ -20,6 +20,21 @@ const (
 
 var intentModeNames = []string{"Activity", "Broadcast"}
 
+var intentActionSuggestions = []string{
+	"android.intent.action.VIEW",
+	"android.intent.action.SEND",
+	"android.intent.action.SENDTO",
+	"android.intent.action.DIAL",
+	"android.intent.action.MAIN",
+	"android.intent.action.PICK",
+	"android.intent.action.GET_CONTENT",
+	"android.settings.SETTINGS",
+	"android.settings.WIFI_SETTINGS",
+	"android.settings.BLUETOOTH_SETTINGS",
+	"android.settings.APPLICATION_SETTINGS",
+	"android.settings.APPLICATION_DETAILS_SETTINGS",
+}
+
 type Intents struct {
 	state *state.AppState
 
@@ -44,9 +59,17 @@ func (i *Intents) showForm() {
 		title = "Send Broadcast"
 	}
 	i.form.Show(title, []components.FormField{
-		{Label: "Action", Value: "android.intent.action.VIEW"},
-		{Label: "Data URI", Value: ""},
-		{Label: "Extras (k=v;k2=v2)", Value: ""},
+		{
+			Label:       "Action",
+			Value:       "android.intent.action.VIEW",
+			Type:        components.FormFieldAutocomplete,
+			Suggestions: intentActionSuggestions,
+		},
+		{
+			Label:       "Data URI",
+			Placeholder: "https://...  geo:...  tel:...  mailto:...",
+		},
+		{Label: "Extras (k=v;k2=v2)"},
 	})
 }
 
@@ -59,12 +82,6 @@ func (i *Intents) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if i.form.Visible {
 		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			if msg.String() == "ctrl+t" {
-				i.mode = (i.mode + 1) % 2
-				i.showForm()
-				return i, nil
-			}
 		case components.FormSubmitMsg:
 			values := msg.Values
 			i.form.Hide()
@@ -142,7 +159,7 @@ func (i *Intents) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "n":
 			i.showForm()
-		case "t":
+		case "left", "right":
 			i.mode = (i.mode + 1) % 2
 			i.showForm()
 		}
@@ -181,7 +198,7 @@ func (i *Intents) View() string {
 	}
 
 	footer := components.Help("n", "new intent") + "  " +
-		components.Help("t", "toggle mode") + "  " +
+		components.Help("←/→", "mode") + "  " +
 		components.Help("esc", "back")
 
 	rendered := components.RenderLayoutWithScrollableSection(i.state, components.LayoutWithScrollProps{
@@ -192,7 +209,7 @@ func (i *Intents) View() string {
 	})
 
 	if i.form.Visible {
-		rendered = components.RenderOverlay(rendered, i.form.View(), i.state)
+		rendered = components.RenderFormOverlay(rendered, i.form, i.state)
 	}
 
 	if i.toast.Visible {
