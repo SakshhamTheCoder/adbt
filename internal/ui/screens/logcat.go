@@ -2,12 +2,12 @@ package screens
 
 import (
 	"strings"
-	"unicode"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -21,12 +21,15 @@ type Logcat struct {
 	running bool
 
 	filterLevel int
-	search      string
-	searching   bool
+	search      components.SearchState
+	viewport    viewport.Model
 }
 
 func NewLogcat(state *state.AppState) *Logcat {
-	return &Logcat{state: state}
+	return &Logcat{
+		state:    state,
+		viewport: viewport.New(0, 0),
+	}
 }
 
 func (l *Logcat) Init() tea.Cmd {
@@ -34,7 +37,7 @@ func (l *Logcat) Init() tea.Cmd {
 		return nil
 	}
 	l.running = true
-	return adb.StartLogcatCmd(l.state.DeviceSerial())
+	return tea.Batch(tea.SetWindowTitle(components.ShellTitle(l.state, "Logcat")), adb.StartLogcatCmd(l.state.DeviceSerial()))
 }
 
 func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -42,7 +45,8 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case adb.LogcatStartedMsg:
 		l.session = msg.Session
-		return l, adb.NextLogcatLineCmd(l.session)
+		// Some terminals briefly switch the title to the child process name.
+		return l, tea.Batch(tea.SetWindowTitle(components.ShellTitle(l.state, "Logcat")), adb.NextLogcatLineCmd(l.session))
 
 	case adb.LogcatLineMsg:
 		l.lines = append(l.lines, msg.Line)
@@ -50,8 +54,8 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			l.lines = l.lines[len(l.lines)-1000:]
 		}
 		if l.running {
-			if !l.searching {
-				components.ViewportGotoBottom("Logcat")
+			if !l.search.Active {
+				l.gotoBottom()
 			}
 			return l, adb.NextLogcatLineCmd(l.session)
 		}
@@ -60,42 +64,33 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		l.running = false
 
 	case tea.KeyMsg:
-		if l.searching {
-			switch msg.String() {
-			case "esc":
-				l.searching = false
-				l.search = ""
-				return l, tea.Batch()
-			case "enter":
-				l.searching = false
-			case "backspace":
-				if len(l.search) > 0 {
-					l.search = l.search[:len(l.search)-1]
-				}
-			default:
-				if len(msg.Runes) == 1 && unicode.IsPrint(msg.Runes[0]) {
-					l.search += string(msg.Runes)
-				}
-			}
-			return l, nil
+		if l.search.Active {
+			l.search.HandleKey(msg)
+			return l, consumeKeyCmd()
 		}
 
 		switch msg.String() {
 		case "c":
 			l.lines = nil
-			components.ViewportGotoTop("Logcat")
+			l.gotoTop()
 		case "s":
 			l.running = !l.running
-			if l.running {
+			if l.running && l.session != nil {
 				return l, adb.NextLogcatLineCmd(l.session)
 			}
-		case "f":
+		case "right":
 			l.filterLevel = (l.filterLevel + 1) % len(logLevels)
+		case "left":
+			l.filterLevel = (l.filterLevel + len(logLevels) - 1) % len(logLevels)
 		case "/":
-			l.searching = true
-			l.search = ""
+			l.search.Start()
+		case "esc":
+			if l.search.Query != "" {
+				l.search.Clear()
+				return l, consumeKeyCmd()
+			}
 		default:
-			return l, components.UpdateViewport("Logcat", msg)
+			return l, l.updateViewport(msg)
 		}
 	}
 
@@ -118,8 +113,8 @@ func (l *Logcat) View() string {
 	var body strings.Builder
 	for _, line := range filtered {
 		styled := colorLogLine(line)
-		if l.search != "" {
-			styled = highlightSearch(styled, l.search)
+		if l.search.Query != "" {
+			styled = highlightSearch(styled, l.search.Query)
 		}
 		body.WriteString(truncStyle.Render(styled) + "\n")
 	}
@@ -149,12 +144,12 @@ func (l *Logcat) View() string {
 		}
 	}
 
-	if l.searching {
+	if l.search.Active {
 		statusLine.WriteString("  ")
-		statusLine.WriteString(components.HelpKeyStyle.Render("search: ") + l.search + "▌")
-	} else if l.search != "" {
+		statusLine.WriteString(components.HelpKeyStyle.Render("search: ") + l.search.Query + "▌")
+	} else if l.search.Query != "" {
 		statusLine.WriteString("  ")
-		statusLine.WriteString(components.StatusMuted.Render("search: \"" + l.search + "\""))
+		statusLine.WriteString(components.StatusMuted.Render("search: \"" + l.search.Query + "\""))
 	}
 
 	statusLine.WriteString("\n")
@@ -165,9 +160,10 @@ func (l *Logcat) View() string {
 		ScrollableContent: body.String(),
 		Footer: components.Help("c", "clear") + "  " +
 			components.Help("s", "start/stop") + "  " +
-			components.Help("f", "filter") + "  " +
+			components.Help("←/→", "filter") + "  " +
 			components.Help("/", "search") + "  " +
 			components.Help("esc", "back"),
+		Viewport: &l.viewport,
 	})
 }
 
@@ -175,7 +171,7 @@ func (l *Logcat) View() string {
 
 func (l *Logcat) filteredLines() []string {
 	minLevel := logLevels[l.filterLevel]
-	if minLevel == "" && l.search == "" {
+	if minLevel == "" && l.search.Query == "" {
 		return l.lines
 	}
 
@@ -184,9 +180,9 @@ func (l *Logcat) filteredLines() []string {
 		if minLevel != "" && !lineMatchesLevel(line, minLevel) {
 			continue
 		}
-		if l.search != "" && !strings.Contains(
+		if l.search.Query != "" && !strings.Contains(
 			strings.ToLower(line),
-			strings.ToLower(l.search),
+			strings.ToLower(l.search.Query),
 		) {
 			continue
 		}
@@ -251,6 +247,29 @@ func colorLogLine(line string) string {
 		return components.LogFatal.Render(line)
 	}
 	return line
+}
+
+func (l *Logcat) Cleanup() tea.Cmd {
+	l.running = false
+	session := l.session
+	return func() tea.Msg {
+		_ = session.Stop()
+		return nil
+	}
+}
+
+func (l *Logcat) updateViewport(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	l.viewport, cmd = l.viewport.Update(msg)
+	return cmd
+}
+
+func (l *Logcat) gotoTop() {
+	l.viewport.GotoTop()
+}
+
+func (l *Logcat) gotoBottom() {
+	l.viewport.GotoBottom()
 }
 
 func highlightSearch(line, term string) string {

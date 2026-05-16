@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -30,10 +30,11 @@ type AppManager struct {
 	loading bool
 	cursor  int
 
-	search    string
-	searching bool
+	search components.SearchState
 
 	filterType AppFilter
+
+	viewport viewport.Model
 
 	confirm components.ConfirmPrompt
 	toast   components.Toast
@@ -44,7 +45,8 @@ type AppManager struct {
 
 func NewAppManager(state *state.AppState) *AppManager {
 	return &AppManager{
-		state: state,
+		state:    state,
+		viewport: viewport.New(0, 0),
 	}
 }
 
@@ -59,7 +61,7 @@ func (a *AppManager) Init() tea.Cmd {
 
 func (a *AppManager) filteredApps() []adb.App {
 	var filtered []adb.App
-	lowerSearch := strings.ToLower(a.search)
+	lowerSearch := strings.ToLower(a.search.Query)
 
 	for _, app := range a.apps {
 		switch a.filterType {
@@ -73,7 +75,7 @@ func (a *AppManager) filteredApps() []adb.App {
 			}
 		}
 
-		if a.search != "" {
+		if a.search.Query != "" {
 			if !strings.Contains(strings.ToLower(app.PackageName), lowerSearch) {
 				continue
 			}
@@ -156,7 +158,7 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.loading = false
 		a.apps = msg.Apps
 		a.cursor = 0
-		components.ViewportGotoTop("Apps")
+		a.gotoTop()
 		return a, nil
 
 	case adb.AppsLoadErrorMsg:
@@ -194,27 +196,14 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, cmd
 
 	case tea.KeyMsg:
-		if a.searching {
-			switch msg.String() {
-			case "esc":
-				a.searching = false
-				a.search = ""
+		if a.search.Active {
+			before := a.search.Query
+			a.search.HandleKey(msg)
+			if a.search.Query != before {
 				a.cursor = 0
-				return a, tea.Batch()
-			case "enter":
-				a.searching = false
-			case "backspace":
-				if len(a.search) > 0 {
-					a.search = a.search[:len(a.search)-1]
-					a.cursor = 0
-				}
-			default:
-				if len(msg.Runes) == 1 && unicode.IsPrint(msg.Runes[0]) {
-					a.search += string(msg.Runes)
-					a.cursor = 0
-				}
+				a.gotoTop()
 			}
-			return a, tea.Batch()
+			return a, consumeKeyCmd()
 		}
 
 		filtered := a.filteredApps()
@@ -223,13 +212,13 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if a.cursor > 0 {
 				a.cursor--
-				components.ViewportEnsureVisible("Apps", a.cursor)
+				a.ensureCursorVisible()
 			}
 
 		case "down", "j":
 			if a.cursor < len(filtered)-1 {
 				a.cursor++
-				components.ViewportEnsureVisible("Apps", a.cursor)
+				a.ensureCursorVisible()
 			}
 
 		case "enter", "l":
@@ -268,14 +257,13 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "/":
-			a.searching = true
-			a.search = ""
+			a.search.Start()
 
 		case "r":
 			if a.state.HasDevice() {
 				a.loading = true
 				a.cursor = 0
-				components.ViewportGotoTop("Apps")
+				a.gotoTop()
 				return a, adb.ListAppsCmd(a.state.DeviceSerial())
 			}
 
@@ -284,20 +272,26 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				{Label: "APK Path", Value: ""},
 			})
 
-		case "f":
+		case "right":
 			a.filterType = (a.filterType + 1) % 3
 			a.cursor = 0
-			components.ViewportGotoTop("Apps")
+			a.gotoTop()
+
+		case "left":
+			a.filterType = (a.filterType + 2) % 3
+			a.cursor = 0
+			a.gotoTop()
 
 		case "esc":
-			if a.search != "" {
-				a.search = ""
+			if a.search.Query != "" {
+				a.search.Clear()
 				a.cursor = 0
-				return a, tea.Batch()
+				a.gotoTop()
+				return a, consumeKeyCmd()
 			}
 
 		default:
-			return a, components.UpdateViewport("Apps", msg)
+			return a, a.updateViewport(msg)
 		}
 	}
 
@@ -325,13 +319,13 @@ func (a *AppManager) View() string {
 	}
 	staticContent.WriteString("\n")
 
-	if a.searching {
+	if a.search.Active {
 		staticContent.WriteString(
-			components.HelpKeyStyle.Render("search: ") + a.search + "▌\n",
+			components.HelpKeyStyle.Render("search: ") + a.search.Query + "▌\n",
 		)
-	} else if a.search != "" {
+	} else if a.search.Query != "" {
 		staticContent.WriteString(
-			components.StatusMuted.Render("filter: \""+a.search+"\"") + "\n",
+			components.StatusMuted.Render("filter: \""+a.search.Query+"\"") + "\n",
 		)
 	}
 
@@ -385,10 +379,10 @@ func (a *AppManager) View() string {
 	}
 
 	var footer string
-	if a.searching {
+	if a.search.Active {
 		footer = components.Help("enter", "apply") + "  " +
 			components.Help("esc", "cancel")
-	} else if a.search != "" {
+	} else if a.search.Query != "" {
 		footer = components.Help("↑/↓", "navigate") + "  " +
 			components.Help("enter", "launch") + "  " +
 			components.Help("/", "search") + "  " +
@@ -400,7 +394,7 @@ func (a *AppManager) View() string {
 			components.Help("s", "stop") + "  " +
 			components.Help("u", "uninstall") + "  " +
 			components.Help("x", "clear") + "  " +
-			components.Help("f", "filter") + "  " +
+			components.Help("←/→", "filter") + "  " +
 			components.Help("/", "search") + "  " +
 			components.Help("r", "reload") + "  " +
 			components.Help("esc", "back")
@@ -411,10 +405,11 @@ func (a *AppManager) View() string {
 		StaticContent:     staticContent.String(),
 		ScrollableContent: scrollableContent.String(),
 		Footer:            footer,
+		Viewport:          &a.viewport,
 	})
 
 	if a.installForm.Visible {
-		rendered = components.RenderOverlay(rendered, a.installForm.View(), a.state)
+		rendered = components.RenderFormOverlay(rendered, a.installForm, a.state)
 	}
 
 	if a.confirm.Visible {
@@ -426,4 +421,24 @@ func (a *AppManager) View() string {
 	}
 
 	return rendered
+}
+
+func (a *AppManager) updateViewport(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	a.viewport, cmd = a.viewport.Update(msg)
+	return cmd
+}
+
+func (a *AppManager) gotoTop() {
+	a.viewport.GotoTop()
+}
+
+func (a *AppManager) ensureCursorVisible() {
+	ensureViewportLineVisible(&a.viewport, a.cursor)
+}
+
+func consumeKeyCmd() tea.Cmd {
+	return func() tea.Msg {
+		return nil
+	}
 }
