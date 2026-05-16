@@ -9,6 +9,7 @@ import (
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -22,6 +23,12 @@ const (
 
 var portModeNames = []string{"Forward", "Reverse"}
 
+var (
+	forwardLocalSchemes  = []string{"tcp", "localabstract", "localreserved", "localfilesystem", "acceptfd"}
+	forwardRemoteSchemes = []string{"tcp", "localabstract", "localreserved", "localfilesystem", "jdwp", "vsock", "dev", "dev-raw"}
+	reverseSchemes       = []string{"tcp", "localabstract", "localreserved", "localfilesystem"}
+)
+
 type Ports struct {
 	state   *state.AppState
 	ports   []adb.PortForward
@@ -32,11 +39,14 @@ type Ports struct {
 	form    components.FormModal
 	confirm components.ConfirmPrompt
 	toast   components.Toast
+
+	viewport viewport.Model
 }
 
 func NewPorts(state *state.AppState) *Ports {
 	return &Ports{
-		state: state,
+		state:    state,
+		viewport: viewport.New(0, 0),
 	}
 }
 
@@ -58,11 +68,9 @@ func (p *Ports) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.form.Hide()
 			local := ""
 			remote := ""
-			if len(values) > 0 {
-				local = values[0]
-			}
-			if len(values) > 1 {
-				remote = values[1]
+			if len(values) >= 4 {
+				local = composeEndpoint(values[0], values[1])
+				remote = composeEndpoint(values[2], values[3])
 			}
 
 			if local == "" || remote == "" {
@@ -130,7 +138,7 @@ func (p *Ports) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if p.cursor >= len(p.ports) {
 			p.cursor = 0
 		}
-		components.ViewportGotoTop("Ports")
+		p.gotoTop()
 
 	case adb.PortsLoadErrorMsg:
 		p.loading = false
@@ -168,36 +176,31 @@ func (p *Ports) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if p.cursor > 0 {
 				p.cursor--
-				components.ViewportEnsureVisible("Ports", p.cursor)
+				p.ensureCursorVisible()
 			}
 		case "down", "j":
 			if p.cursor < len(p.ports)-1 {
 				p.cursor++
-				components.ViewportEnsureVisible("Ports", p.cursor)
+				p.ensureCursorVisible()
 			}
 		case "a":
-			title := "Add Forward Rule"
-			if p.mode == portModeReverse {
-				title = "Add Reverse Rule"
-			}
-			p.form.Show(title, []components.FormField{
-				{Label: "Local", Value: "tcp:"},
-				{Label: "Remote", Value: "tcp:"},
-			})
+			p.showForm()
 		case "d":
 			if len(p.ports) > 0 && p.cursor < len(p.ports) {
 				port := p.ports[p.cursor]
 				p.confirm.Show("Remove forward:\n" + port.Local + " → " + port.Remote)
 			}
-		case "t":
+		case "right":
+			p.mode = (p.mode + 1) % 2
+		case "left":
 			p.mode = (p.mode + 1) % 2
 		case "r":
 			p.loading = true
 			p.cursor = 0
-			components.ViewportGotoTop("Ports")
+			p.gotoTop()
 			return p, adb.ListPortForwardsCmd(p.state.DeviceSerial())
 		default:
-			return p, components.UpdateViewport("Ports", msg)
+			return p, p.updateViewport(msg)
 		}
 	}
 
@@ -260,7 +263,7 @@ func (p *Ports) View() string {
 	footer := components.Help("↑/↓", "navigate") + "  " +
 		components.Help("a", "add") + "  " +
 		components.Help("d", "remove") + "  " +
-		components.Help("t", "toggle mode") + "  " +
+		components.Help("←/→", "mode") + "  " +
 		components.Help("r", "refresh") + "  " +
 		components.Help("esc", "back")
 
@@ -269,10 +272,11 @@ func (p *Ports) View() string {
 		StaticContent:     staticContent.String(),
 		ScrollableContent: scrollableContent.String(),
 		Footer:            footer,
+		Viewport:          &p.viewport,
 	})
 
 	if p.form.Visible {
-		rendered = components.RenderOverlay(rendered, p.form.View(), p.state)
+		rendered = components.RenderFormOverlay(rendered, p.form, p.state)
 	}
 
 	if p.confirm.Visible {
@@ -284,4 +288,44 @@ func (p *Ports) View() string {
 	}
 
 	return rendered
+}
+
+func (p *Ports) updateViewport(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	p.viewport, cmd = p.viewport.Update(msg)
+	return cmd
+}
+
+func (p *Ports) gotoTop() {
+	p.viewport.GotoTop()
+}
+
+func (p *Ports) ensureCursorVisible() {
+	ensureViewportLineVisible(&p.viewport, p.cursor)
+}
+
+func (p *Ports) showForm() {
+	title := "Add Forward Rule"
+	localSchemes := forwardLocalSchemes
+	remoteSchemes := forwardRemoteSchemes
+	if p.mode == portModeReverse {
+		title = "Add Reverse Rule"
+		localSchemes = reverseSchemes
+		remoteSchemes = reverseSchemes
+	}
+
+	p.form.Show(title, []components.FormField{
+		{Label: "Local Scheme", Type: components.FormFieldSelect, Options: localSchemes, Value: "tcp"},
+		{Label: "Local Value"},
+		{Label: "Remote Scheme", Type: components.FormFieldSelect, Options: remoteSchemes, Value: "tcp"},
+		{Label: "Remote Value"},
+	})
+}
+
+func composeEndpoint(scheme, value string) string {
+	value = strings.TrimSpace(value)
+	if scheme == "" || value == "" {
+		return ""
+	}
+	return scheme + ":" + value
 }
