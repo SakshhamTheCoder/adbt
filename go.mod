@@ -7,6 +7,8 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 )
 
+require github.com/atotto/clipboard v0.1.4 // indirect
+
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/bubbles v0.21.0
