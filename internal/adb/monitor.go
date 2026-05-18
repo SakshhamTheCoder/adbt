@@ -137,12 +137,12 @@ func parseMemInfo(output string) (total, available uint64) {
 }
 
 func parseNetDev(output string) (rx, tx uint64) {
-	lines := strings.Split(output, "\n")
+	lines := strings.SplitSeq(output, "\n")
 	// Inter-face   |   Receive ... | Transmit ...
 	// wlan0: 123 456 ... or
 	//  wlan0:123 ... (no space after colon)
 
-	for _, line := range lines {
+	for line := range lines {
 		if !strings.Contains(line, ":") {
 			continue
 		}

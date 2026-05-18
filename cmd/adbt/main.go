@@ -13,7 +13,6 @@ func main() {
 	p := tea.NewProgram(
 		ui.NewApp(),
 		tea.WithAltScreen(),
-		tea.WithMouseCellMotion(),
 	)
 
 	if _, err := p.Run(); err != nil {
