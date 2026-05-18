@@ -20,48 +20,37 @@ type ScrollableLayoutProps struct {
 type LayoutWithScrollProps = ScrollableLayoutProps
 
 func RenderLayoutWithScrollableSection(state *state.AppState, props ScrollableLayoutProps) string {
-	var b strings.Builder
+	headerStr := RenderHeader(state, props.Title)
+	headerHeight := lipgloss.Height(headerStr)
 
-	b.WriteString(RenderHeader(state, props.Title) + "\n")
-
-	contentWidth := max(state.Width-4, 20)
-	contentHeight := state.Height - 7
-	if contentHeight < 10 {
-		contentHeight = 10
+	footerStr := ""
+	footerHeight := 0
+	if props.Footer != "" {
+		// Render footer without scroll info first to get its wrapped height
+		tempFooter := FooterStyle.Width(state.Width).Render(props.Footer)
+		footerHeight = lipgloss.Height(tempFooter)
 	}
+
+	contentHeight := max(state.Height-headerHeight-footerHeight, 5)
 
 	staticLines := strings.Count(props.StaticContent, "\n")
-	scrollableHeight := contentHeight - staticLines - 1
-	if scrollableHeight < 5 {
-		scrollableHeight = 5
-	}
+	scrollableHeight := max(contentHeight-staticLines, 3)
 
 	vp := props.Viewport
 	if vp == nil {
-		temp := viewport.New(contentWidth, scrollableHeight)
+		temp := viewport.New(state.Width-4, scrollableHeight)
 		vp = &temp
 	} else if vp.Width == 0 && vp.Height == 0 {
-		*vp = viewport.New(contentWidth, scrollableHeight)
+		*vp = viewport.New(state.Width-4, scrollableHeight)
 	}
 
-	vp.Width = contentWidth
+	vp.Width = state.Width - 4
 	vp.Height = scrollableHeight
 	vp.SetContent(props.ScrollableContent)
 
-	var combinedContent strings.Builder
-	combinedContent.WriteString(props.StaticContent)
-	combinedContent.WriteString(vp.View())
-
-	b.WriteString(
-		ContentStyle.
-			Width(contentWidth).
-			Height(contentHeight).
-			Render(combinedContent.String()) + "\n",
-	)
-
+	// Re-render footer with scroll info if needed
 	if props.Footer != "" {
 		footerText := props.Footer
-
 		if vp.TotalLineCount() > vp.Height {
 			percentage := int(vp.ScrollPercent() * 100)
 			scrollInfo := StatusMuted.Render(" │ ") +
@@ -70,11 +59,18 @@ func RenderLayoutWithScrollableSection(state *state.AppState, props ScrollableLa
 				StatusMuted.Render("%")
 			footerText += scrollInfo
 		}
-
-		b.WriteString(FooterStyle.Render(footerText))
+		footerStr = FooterStyle.Width(state.Width).Render(footerText)
 	}
 
-	return b.String()
+	contentStr := ContentStyle.
+		Width(state.Width).
+		Height(contentHeight).
+		Render(props.StaticContent + vp.View())
+
+	if footerStr == "" {
+		return lipgloss.JoinVertical(lipgloss.Left, headerStr, contentStr)
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, headerStr, contentStr, footerStr)
 }
 
 func RenderLayout(state *state.AppState, title, content, footer string) string {

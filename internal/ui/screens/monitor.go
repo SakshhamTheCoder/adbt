@@ -120,8 +120,8 @@ func (m *PerfMonitor) View() string {
 	// Styles
 	// Styles
 	labelStyle := components.StatusMuted.Copy().Width(12)
-	barStyle := lipgloss.NewStyle().Background(components.Primary)
-	barEmptyStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1f2937")) // dark gray (Tailwind gray-800)
+	barStyle := components.PerfBarStyle
+	barEmptyStyle := components.PerfBarEmptyStyle
 
 	// 1. CPU
 	cpuBar := renderProgressBar(m.cpuPercent, 40, barStyle, barEmptyStyle)
@@ -186,10 +186,10 @@ func renderProgressBar(percent float64, width int, filled, empty lipgloss.Style)
 
 	bar := ""
 	if fillCount > 0 {
-		bar += filled.Render(strings.Repeat(" ", fillCount))
+		bar += filled.Render(strings.Repeat("█", fillCount))
 	}
 	if emptyCount > 0 {
-		bar += empty.Render(strings.Repeat(" ", emptyCount))
+		bar += empty.Render(strings.Repeat("░", emptyCount))
 	}
 	return bar
 }

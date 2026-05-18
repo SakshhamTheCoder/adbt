@@ -1,7 +1,10 @@
 package screens
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/charmbracelet/bubbles/viewport"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
 	"github.com/SakshhamTheCoder/adbt/internal/state"
@@ -24,11 +27,13 @@ type Dashboard struct {
 	loading   bool
 	menuItems []menuItem
 	cursor    int
+	viewport  viewport.Model
 }
 
 func NewDashboard(appState *state.AppState) *Dashboard {
 	return &Dashboard{
-		state: appState,
+		state:    appState,
+		viewport: viewport.New(0, 0),
 		menuItems: []menuItem{
 			{"d", "Devices", "View and select connected devices", navigation.ActionDevices, false},
 			{"i", "Device Info", "View device details and controls", navigation.ActionDeviceInfo, true},
@@ -64,10 +69,12 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if d.cursor > 0 {
 				d.cursor--
+				d.ensureCursorVisible()
 			}
 		case "down", "j":
 			if d.cursor < len(d.menuItems)-1 {
 				d.cursor++
+				d.ensureCursorVisible()
 			}
 		case "enter":
 			item := d.menuItems[d.cursor]
@@ -83,16 +90,21 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return d, nil
 }
 
+func (d *Dashboard) ensureCursorVisible() {
+	ensureViewportLineVisible(&d.viewport, d.cursor)
+}
+
 func (d *Dashboard) View() string {
-	var body strings.Builder
+	var staticContent strings.Builder
+	var scrollableContent strings.Builder
 
 	if d.loading {
-		body.WriteString(components.StatusMuted.Render("Loading devices..."))
+		staticContent.WriteString(components.StatusMuted.Render("Loading devices..."))
 	} else {
-		body.WriteString(components.TitleStyle.Render("Device") + "\n")
+		staticContent.WriteString(components.SectionTitle("Device") + "\n")
 
 		if dev := d.state.SelectedDevice(); dev != nil {
-			body.WriteString(
+			staticContent.WriteString(
 				components.KeyValueList([]components.KeyValueRow{
 					{Key: "Status:", Value: components.StatusConnected.Render("● Connected")},
 					{Key: "Model:", Value: dev.Model},
@@ -100,14 +112,12 @@ func (d *Dashboard) View() string {
 				}),
 			)
 		} else {
-			body.WriteString(components.StatusDisconnected.Render("● No device connected\n"))
-			body.WriteString(components.StatusMuted.Render(
-				"Connect a device with USB debugging enabled.\nPress D to open device manager.",
-			))
+			staticContent.WriteString(components.StatusDisconnected.Render("● No device connected") + "\n")
+			staticContent.WriteString(components.StatusMuted.Render("Connect a device with USB debugging enabled."))
 		}
 
-		body.WriteString("\n")
-		body.WriteString(components.TitleStyle.Render("Quick Actions") + "\n")
+		staticContent.WriteString("\n\n")
+		staticContent.WriteString(components.SectionTitle("Quick Actions") + "\n")
 
 		for i, item := range d.menuItems {
 			line := "  "
@@ -117,12 +127,13 @@ func (d *Dashboard) View() string {
 
 			disabled := item.requireDevice && !d.state.HasDevice()
 
+			paddedLabel := fmt.Sprintf("%-16s", item.label)
 			if i == d.cursor {
 				line += components.HelpKeyStyle.Render("[" + item.key + "]")
-				line += " " + components.ListItemSelectedStyle.Render(item.label)
+				line += " " + components.ListItemSelectedStyle.Render(paddedLabel)
 			} else {
 				line += components.StatusMuted.Render("[" + item.key + "] ")
-				line += components.ListItemStyle.Render(item.label)
+				line += components.ListItemStyle.Render(paddedLabel)
 			}
 
 			line += " " + components.StatusMuted.Render("- "+item.description)
@@ -131,13 +142,15 @@ func (d *Dashboard) View() string {
 				line += " " + components.ErrorStyle.Render("(requires device)")
 			}
 
-			body.WriteString(line + "\n")
+			scrollableContent.WriteString(line + "\n")
 		}
 	}
 
 	return components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
 		Title:             "Dashboard",
-		ScrollableContent: body.String(),
-		Footer:            components.Help("↑/↓", "navigate") + "  " + components.Help("enter", "select"),
+		StaticContent:     staticContent.String(),
+		ScrollableContent: scrollableContent.String(),
+		Viewport:          &d.viewport,
+		Footer:            components.JoinHelp([2]string{"↑/↓", "navigate"}, [2]string{"enter", "select"}),
 	})
 }

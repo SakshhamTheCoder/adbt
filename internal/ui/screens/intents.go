@@ -174,17 +174,17 @@ func (i *Intents) View() string {
 	}
 
 	var staticContent strings.Builder
-	staticContent.WriteString(components.TitleStyle.Render("Intent Tester") + "\n")
+
 
 	staticContent.WriteString("  ")
 	for idx, name := range intentModeNames {
 		if intentMode(idx) == i.mode {
-			staticContent.WriteString(components.HelpKeyStyle.Render(name))
+			staticContent.WriteString(components.TabActiveStyle.Render(name))
 		} else {
-			staticContent.WriteString(components.StatusMuted.Render(name))
+			staticContent.WriteString(components.TabInactiveStyle.Render(name))
 		}
 		if idx < len(intentModeNames)-1 {
-			staticContent.WriteString(components.StatusMuted.Render(" / "))
+			staticContent.WriteString(" ")
 		}
 	}
 	staticContent.WriteString("\n\n")
@@ -197,9 +197,11 @@ func (i *Intents) View() string {
 		scrollableContent.WriteString(components.StatusMuted.Render("Press [n] to send an intent") + "\n")
 	}
 
-	footer := components.Help("n", "new intent") + "  " +
-		components.Help("←/→", "mode") + "  " +
-		components.Help("esc", "back")
+	footer := components.JoinHelp(
+		[2]string{"n", "new intent"},
+		[2]string{"←/→", "mode"},
+		[2]string{"esc", "back"},
+	)
 
 	rendered := components.RenderLayoutWithScrollableSection(i.state, components.LayoutWithScrollProps{
 		Title:             "Intents",

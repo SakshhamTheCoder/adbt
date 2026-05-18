@@ -64,10 +64,7 @@ func (f *FormModal) Show(title string, fields []FormField) {
 
 	for idx, field := range fields {
 		if field.Type == FormFieldSelect && len(field.Options) > 0 {
-			f.optionCursors[idx] = selectedOptionIndex(field.Options, field.Value)
-			if f.optionCursors[idx] < 0 {
-				f.optionCursors[idx] = 0
-			}
+			f.optionCursors[idx] = max(selectedOptionIndex(field.Options, field.Value), 0)
 			continue
 		}
 
@@ -172,16 +169,6 @@ func (f *FormModal) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-var formBoxStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.RoundedBorder()).
-	BorderForeground(Primary).
-	Padding(0, 2)
-
-var formPickerStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.RoundedBorder()).
-	BorderForeground(Primary).
-	Padding(0, 1)
-
 func (f *FormModal) View() string {
 	if !f.Visible {
 		return ""
@@ -210,9 +197,8 @@ func (f *FormModal) View() string {
 	lines = append(lines, f.fixedLine(f.submitLine()))
 	lines = append(lines, f.fixedLine(f.helpLine()))
 
-	return formBoxStyle.
-		Width(formContentWidth).
-		MaxWidth(formContentWidth + 4).
+	return FormBoxStyle.
+		Width(formContentWidth + 4).
 		Render(strings.Join(lines, "\n"))
 }
 
@@ -242,7 +228,7 @@ func (f *FormModal) PickerView() string {
 		return ""
 	}
 	choices, selected = visibleChoiceWindow(choices, selected, 5)
-	return formPickerStyle.Render(strings.Join(f.pickerLines(choices, selected), "\n"))
+	return FormPickerStyle.Render(strings.Join(f.pickerLines(choices, selected), "\n"))
 }
 
 func (f *FormModal) PickerVisible() bool {
@@ -322,10 +308,7 @@ func (f *FormModal) openChoices() bool {
 		if len(matches) == 0 {
 			return false
 		}
-		f.suggestionIndex = selectedOptionIndex(matches, f.inputs[f.Cursor].Value())
-		if f.suggestionIndex < 0 {
-			f.suggestionIndex = 0
-		}
+		f.suggestionIndex = max(selectedOptionIndex(matches, f.inputs[f.Cursor].Value()), 0)
 		f.suggestionOpen = true
 		return true
 	default:
@@ -430,26 +413,24 @@ func (f *FormModal) renderValue(index int) string {
 }
 
 func (f *FormModal) submitLine() string {
-	label := "Submit"
-	var rendered string
+	label := " Submit "
+	var btn string
 	if f.isSubmitFocused() {
-		rendered = "› " + ListItemSelectedStyle.Render(label) + " ‹"
+		btn = FormSubmitFocusedStyle.Render(label)
 	} else {
-		rendered = StatusMuted.Render(label)
+		btn = FormSubmitBlurredStyle.Render(label)
 	}
-	return lipgloss.NewStyle().Width(formContentWidth).Align(lipgloss.Center).Render(rendered)
+	return lipgloss.NewStyle().Width(formContentWidth).Align(lipgloss.Center).Render(btn)
 }
 
 func (f *FormModal) pickerLines(choices []string, selected int) []string {
 	lines := []string{f.fixedPickerLine(TitleStyle.Render("Choose"))}
 	for idx, choice := range choices {
-		prefix := "  "
-		style := StatusMuted
 		if idx == selected {
-			prefix = "› "
-			style = ListItemSelectedStyle
+			lines = append(lines, ListItemSelectedStyle.Width(formPickerWidth-4).Render("› "+choice))
+		} else {
+			lines = append(lines, StatusMuted.Width(formPickerWidth-4).Render("  "+choice))
 		}
-		lines = append(lines, f.fixedPickerLine(prefix+style.Render(choice)))
 	}
 	return lines
 }
@@ -539,17 +520,8 @@ func (f *FormModal) ensureCursorVisible() {
 }
 
 func (f *FormModal) visibleFieldRange() (int, int) {
-	start := f.scrollOffset
-	if start < 0 {
-		start = 0
-	}
-	if start > len(f.Fields) {
-		start = len(f.Fields)
-	}
-	end := start + formVisibleFields
-	if end > len(f.Fields) {
-		end = len(f.Fields)
-	}
+	start := min(max(f.scrollOffset, 0), len(f.Fields))
+	end := min(start+formVisibleFields, len(f.Fields))
 	return start, end
 }
 
@@ -597,10 +569,7 @@ func visibleChoiceWindow(choices []string, selected, size int) ([]string, int) {
 	if len(choices) <= size {
 		return choices, selected
 	}
-	start := selected - size/2
-	if start < 0 {
-		start = 0
-	}
+	start := max(selected-size/2, 0)
 	if start+size > len(choices) {
 		start = len(choices) - size
 	}
