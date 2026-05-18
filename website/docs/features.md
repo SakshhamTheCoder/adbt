@@ -46,3 +46,16 @@ sidebar_position: 3
 - **Search**: Text search with real-time highlighting.
 
 ![Logcat Viewer](/img/screenshots/logcat.png)
+
+## Intent Tester
+- **Activity & Broadcast**: Send intents to test deep links and receiver behavior.
+- **Suggestions**: Quick access to common Android intent actions.
+
+![Intent Tester](/img/screenshots/intents.png)
+
+## Port Forwarding
+- **Forward & Reverse**: Manage network connections between host and device.
+- **Multiple Schemes**: Supports tcp, localabstract, localreserved, and more.
+
+![Port Forwarding](/img/screenshots/ports.png)
+
