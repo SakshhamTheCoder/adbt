@@ -28,7 +28,7 @@ func SendIntentCmd(serial, action, dataURI, extras string) tea.Cmd {
 		}
 
 		if extras != "" {
-			for _, extra := range strings.Split(extras, ";") {
+			for extra := range strings.SplitSeq(extras, ";") {
 				extra = strings.TrimSpace(extra)
 				if extra == "" {
 					continue
@@ -56,7 +56,7 @@ func SendBroadcastCmd(serial, action, extras string) tea.Cmd {
 		}
 
 		if extras != "" {
-			for _, extra := range strings.Split(extras, ";") {
+			for extra := range strings.SplitSeq(extras, ";") {
 				extra = strings.TrimSpace(extra)
 				if extra == "" {
 					continue

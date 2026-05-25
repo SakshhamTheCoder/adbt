@@ -2,12 +2,13 @@ package components
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
 )
 
 func FileList(files []adb.FileEntry, cursor int) string {
-	var out string
+	var out strings.Builder
 
 	for i, f := range files {
 		prefix := "  "
@@ -33,13 +34,13 @@ func FileList(files []adb.FileEntry, cursor int) string {
 		)
 
 		if i == cursor {
-			out += ListItemSelectedStyle.Render(line) + size
+			out.WriteString(ListItemSelectedStyle.Render(line) + size)
 		} else {
-			out += ListItemStyle.Render(line) + size
+			out.WriteString(ListItemStyle.Render(line) + size)
 		}
 
-		out += "\n"
+		out.WriteString("\n")
 	}
 
-	return out
+	return out.String()
 }

@@ -68,15 +68,15 @@ func FetchDeviceDetailsCmd(serial string) tea.Cmd {
 }
 
 func parseBattery(output string) (level, status string) {
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		line = strings.TrimSpace(line)
 
-		if strings.HasPrefix(line, "level:") {
-			level = strings.TrimSpace(strings.TrimPrefix(line, "level:")) + "%"
+		if after, ok := strings.CutPrefix(line, "level:"); ok {
+			level = strings.TrimSpace(after) + "%"
 		}
 
-		if strings.HasPrefix(line, "status:") {
-			code := strings.TrimSpace(strings.TrimPrefix(line, "status:"))
+		if after, ok := strings.CutPrefix(line, "status:"); ok {
+			code := strings.TrimSpace(after)
 			switch code {
 			case "1":
 				status = "Unknown"
@@ -130,17 +130,17 @@ func formatStorageBlocks(blocksStr string) string {
 }
 
 func parseWmOutput(output string) string {
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		line = strings.TrimSpace(line)
-		if idx := strings.Index(line, ":"); idx != -1 {
-			return strings.TrimSpace(line[idx+1:])
+		if _, after, ok := strings.Cut(line, ":"); ok {
+			return strings.TrimSpace(after)
 		}
 	}
 	return strings.TrimSpace(output)
 }
 
 func parseIPAddress(output string) string {
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.Contains(line, "src") {
 			fields := strings.Fields(line)

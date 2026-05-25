@@ -267,13 +267,15 @@ func (f *Files) View() string {
 			Title:             "Files",
 			StaticContent:     staticContent,
 			ScrollableContent: body,
-			Footer: components.Help("enter", "open") + "  " +
-				components.Help("backspace", "up") + "  " +
-				components.Help("p", "pull") + "  " +
-				components.Help("u", "push") + "  " +
-				components.Help("d", "delete") + "  " +
-				components.Help("r", "refresh") + "  " +
-				components.Help("esc", "back"),
+			Footer: components.JoinHelp(
+				[2]string{"enter", "open"},
+				[2]string{"backspace", "up"},
+				[2]string{"p", "pull"},
+				[2]string{"u", "push"},
+				[2]string{"d", "delete"},
+				[2]string{"r", "refresh"},
+				[2]string{"esc", "back"},
+			),
 			Viewport: &f.viewport,
 		},
 	)

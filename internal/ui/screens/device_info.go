@@ -166,15 +166,12 @@ func (d *DeviceInfo) View() string {
 	if dev == nil {
 		return components.RenderNoDevice(d.state, "Device Info")
 	}
-	colWidth := (d.state.Width - 12) / 2
-	if colWidth < 20 {
-		colWidth = 20
-	}
+	colWidth := max((d.state.Width-12)/2, 20)
 	colStyle := lipgloss.NewStyle().Width(colWidth)
 
 	var body strings.Builder
 
-	body.WriteString(components.TitleStyle.Render("Device") + "\n\n")
+	body.WriteString(components.SectionTitle("Device") + "\n\n")
 
 	body.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
 		colStyle.Render(infoCard("Model", dev.Model)),
@@ -186,7 +183,7 @@ func (d *DeviceInfo) View() string {
 		colStyle.Render(infoCard("State", dev.State)),
 	) + "\n")
 
-	body.WriteString("\n" + components.TitleStyle.Render("Details") + "\n\n")
+	body.WriteString("\n" + components.SectionTitle("Details") + "\n\n")
 
 	if d.loading {
 		body.WriteString(components.StatusMuted.Render("  Loading details...") + "\n")
@@ -221,7 +218,7 @@ func (d *DeviceInfo) View() string {
 		body.WriteString(components.StatusMuted.Render("  Could not load details") + "\n")
 	}
 
-	body.WriteString("\n" + components.TitleStyle.Render("Actions") + "\n")
+	body.WriteString("\n" + components.SectionTitle("Actions") + "\n")
 
 	for i, a := range d.actions {
 		line := "  "
@@ -229,12 +226,13 @@ func (d *DeviceInfo) View() string {
 			line = "› "
 		}
 
+		paddedLabel := fmt.Sprintf("%-22s", a.label)
 		if i == d.cursor {
 			line += components.HelpKeyStyle.Render("[" + a.key + "]")
-			line += " " + components.ListItemSelectedStyle.Render(a.label)
+			line += " " + components.ListItemSelectedStyle.Render(paddedLabel)
 		} else {
 			line += components.StatusMuted.Render("[" + a.key + "] ")
-			line += components.ListItemStyle.Render(a.label)
+			line += components.ListItemStyle.Render(paddedLabel)
 		}
 
 		if a.destructive {
@@ -247,9 +245,11 @@ func (d *DeviceInfo) View() string {
 	rendered := components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
 		Title:             "Device Info",
 		ScrollableContent: body.String(),
-		Footer: components.Help("↑/↓", "navigate") + "  " +
-			components.Help("enter", "select") + "  " +
-			components.Help("esc", "back"),
+		Footer: components.JoinHelp(
+			[2]string{"↑/↓", "navigate"},
+			[2]string{"enter", "select"},
+			[2]string{"esc", "back"},
+		),
 	})
 
 	if d.confirm.Visible {

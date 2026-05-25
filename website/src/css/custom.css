@@ -1,20 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,600;0,800;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --ifm-color-primary: #00D7FF; 
-  --ifm-color-primary-dark: #00C1E6;
-  --ifm-color-primary-darker: #00ACC9;
-  --ifm-color-primary-darkest: #008199;
-  --ifm-color-primary-light: #33DFFF;
-  --ifm-color-primary-lighter: #4DE3FF;
-  --ifm-color-primary-lightest: #99F2FF;
+  --ifm-color-primary: #706bff;
+  --ifm-color-primary-dark: #5650cc;
+  --ifm-color-primary-darker: #4a44b3;
+  --ifm-color-primary-darkest: #353080;
+  --ifm-color-primary-light: #8a85ff;
+  --ifm-color-primary-lighter: #a39eff;
+  --ifm-color-primary-lightest: #d1cfff;
 
-  --adbt-bg: #0A0A0A;
-  --adbt-fg: #FFFFFF;
-  --adbt-muted: #171717;
-  --adbt-muted-fg: #A3A3A3;
-  --adbt-border: #262626;
-  
+  --adbt-bg: #1A1824;
+  --adbt-bg-alt: #242132;
+  --adbt-bg-frame: #100E17;
+  --adbt-fg: #f3f4f6;
+  --adbt-muted: #2C293A;
+  --adbt-muted-fg: #9ca3af;
+  --adbt-border: #342F45;
+
   --ifm-font-family-base: 'Inter', system-ui, sans-serif;
   --ifm-heading-font-family: 'Inter Tight', sans-serif;
   --adbt-font-mono: 'JetBrains Mono', monospace;
@@ -26,22 +28,38 @@
 
 [data-theme='light'] {
   --adbt-bg: #FFFFFF;
-  --adbt-fg: #0A0A0A;
-  --adbt-muted: #F5F5F5;
-  --adbt-muted-fg: #525252;
-  --adbt-border: #E5E5E5;
-  --ifm-color-primary: #00A3C2; 
+  --adbt-fg: #111827;
+  --adbt-bg-alt: #F9FAFB;
+  --adbt-bg-frame: #F3F4F6;
+  --adbt-muted: #E5E7EB;
+  --adbt-muted-fg: #4B5563;
+  --adbt-border: #D1D5DB;
+  --ifm-color-primary: #5650cc;
+  --ifm-heading-color: var(--adbt-fg);
 }
 
 [data-theme='dark'] {
   --ifm-background-color: var(--adbt-bg);
   --ifm-navbar-background-color: var(--adbt-bg);
-  --ifm-footer-background-color: var(--adbt-bg);
+  --ifm-footer-background-color: var(--adbt-bg-frame);
   --ifm-color-content: var(--adbt-fg);
+  --ifm-heading-color: var(--adbt-fg);
+}
+
+.theme-doc-sidebar-container {
+  background-color: var(--adbt-bg-frame) !important;
 }
 
 * {
   border-radius: 0 !important;
+}
+
+.hero {
+  background-color: var(--adbt-bg) !important;
+}
+
+main {
+  background-color: var(--adbt-bg-alt) !important;
 }
 
 body::before {
@@ -57,7 +75,9 @@ body::before {
   background-image: var(--adbt-noise);
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   letter-spacing: -0.03em;
   font-weight: 800;
   line-height: 1.1;
@@ -131,7 +151,7 @@ h1, h2, h3 {
 
 .terminal-mockup {
   border: 1px solid var(--adbt-border);
-  background: #000;
+  background: var(--adbt-bg);
   width: 100%;
   max-width: 900px;
   margin: 6rem auto 0;
@@ -139,9 +159,9 @@ h1, h2, h3 {
 }
 
 .terminal-header {
-  background: #171717;
+  background: var(--adbt-bg-frame);
   padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid var(--adbt-border);
   display: flex;
   gap: 8px;
 }
@@ -149,13 +169,13 @@ h1, h2, h3 {
 .terminal-dot {
   width: 12px;
   height: 12px;
-  background: #333;
+  background: var(--adbt-border);
 }
 
 .terminal-body {
   padding: 2.5rem;
   font-family: var(--adbt-font-mono);
-  color: #FFFFFF !important;
+  color: var(--adbt-fg) !important;
   font-size: 15px;
   line-height: 1.6;
 }
@@ -178,8 +198,8 @@ h1, h2, h3 {
   text-align: left;
 }
 
-.theme-doc-markdown h1, 
-.theme-doc-markdown h2, 
+.theme-doc-markdown h1,
+.theme-doc-markdown h2,
 .theme-doc-markdown h3 {
   text-align: left;
 }
@@ -229,26 +249,14 @@ h1, h2, h3 {
   background: var(--adbt-muted);
 }
 
-[class^='codeBlockContainer'], 
-.theme-code-block,
-div[class*='codeBlockContainer'] {
-  background-color: var(--adbt-muted) !important;
-  border: 1px solid var(--adbt-border) !important;
-  box-shadow: none !important;
-  margin-bottom: 2rem !important;
+[data-theme='light'] .token.plain {
+  color: var(--ifm-color-primary) !important;
 }
 
-[class^='codeBlockLines'], 
-pre[class*='codeBlock'],
-code {
-  background-color: transparent !important;
-  color: var(--adbt-fg) !important;
-}
+[data-theme='dark'] .token.plain {
+  color: var(--ifm-color-primary-lighter) !important;
 
-.token.punctuation, .token.operator { color: var(--adbt-muted-fg); }
-.token.keyword { color: var(--ifm-color-primary); }
-.token.string { color: #10b981; }
-.token.comment { color: #525252; }
+}
 
 .footer {
   background-color: var(--adbt-bg) !important;
@@ -287,6 +295,13 @@ code {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }

@@ -1,144 +1,116 @@
-# adbt — Android Debug Bridge TUI
+<p align="center">
+  <img src="website/static/img/logoadbt.png" alt="adbt Logo" width="120" />
+</p>
 
-**adbt** is a modern, keyboard-driven **Terminal User Interface (TUI)** for interacting with Android devices using the Android Debug Bridge (ADB).
-It provides a structured and interactive alternative to raw `adb` commands, focusing on clarity, correctness, and real-time device interaction entirely from the terminal.
+<h1 align="center">adbt</h1>
 
-## Built in **Go** using **Charm’s Bubble Tea framework**.
+<p align="center">
+  <b>A modern, keyboard-driven Terminal User Interface (TUI) for Android Debug Bridge.</b>
+</p>
 
-## Screenshots
+<p align="center">
+  <a href="https://adbt-tui.vercel.app"><b>Documentation Website »</b></a>
+</p>
 
-| Dashboard                               | Device Info                                 |
-| --------------------------------------- | ------------------------------------------- |
-| ![Dashboard](screenshots/dashboard.png) | ![Device Info](screenshots/device_info.png) |
-
-| App Manager                                 | File Explorer                                   |
-| ------------------------------------------- | ----------------------------------------------- |
-| ![App Manager](screenshots/app_manager.png) | ![File Explorer](screenshots/file_explorer.png) |
-
-| Logcat                            | Performance Monitor                         |
-| --------------------------------- | ------------------------------------------- |
-| ![Logcat](screenshots/logcat.png) | ![Performance](screenshots/performance.png) |
-
----
-
-## Features
-
-### 🚀 Device Management
-
-- **Automatic Detection**: Real-time monitoring of connected devices.
-- **Wireless Pairing**: Pair devices via QR Code logic (IP/Port/PIN) directly from the terminal.
-- **Device Info**: View detailed stats (Battery, Storage, Resolution, Android Version).
-- **Power Controls**: Reboot, Recovery, Bootloader, and Screen Toggle.
-- **Scrcpy Integration**: Launch screen mirroring with a single keypress.
-
-### 📊 Performance Monitor
-
-- **Real-time Stats**: CPU, Memory, and Network usage monitoring.
-- **Visual Graphs**: Live progress bars for system resource consumption.
-
-### 📦 App Manager
-
-- **List & Search**: Browse all installed applications.
-- **Filtering**: Toggle between User and System apps.
-- **Actions**:
-    - Launch App
-    - Force Stop
-    - Clear Data
-    - Uninstall
-
-### 📂 File Explorer
-
-- **Browse**: Navigate the device file system.
-- **Transfer**: Pull files from device to your computer.
-- **Manage**: Delete files and directories with confirmation.
-
-### 📝 Logcat Viewer
-
-- **Live Streaming**: Real-time logs.
-- **Filtering**: Filter by log level (Debug, Info, Error, Fatal).
-- **Search**: Text search with highlighting.
+<p align="center">
+  <img src="https://img.shields.io/github/license/SakshhamTheCoder/adbt?style=flat-square&color=blue" alt="License" />
+  <img src="https://img.shields.io/github/v/release/SakshhamTheCoder/adbt?style=flat-square&color=purple" alt="Latest Release" />
+  <img src="https://img.shields.io/badge/built%20with-Bubble%20Tea-brightgreen?style=flat-square" alt="Built with Bubble Tea" />
+</p>
 
 ---
 
-## Installation
+**adbt** is a fast, keyboard-driven terminal user interface for interacting with Android devices via ADB. Built in Go using Charm’s **Bubble Tea** framework, it provides a structured and interactive command-line workspace that helps you avoid complex raw shell commands and context-switching.
+
+For detailed guides, shortcuts, and troubleshooting, visit the [adbt Documentation Website](https://adbt-tui.vercel.app).
+
+---
+
+## ⚡ Core Features
+
+- **Device Management**: Real-time connected device detection, wireless pairing (QR code logic/PIN), detailed device info, and power/reboot controls.
+- **Scrcpy Integration**: Launch high-performance screen mirroring with a single keypress.
+- **Performance Monitor**: Real-time visual graphs for device CPU, memory, and network usage.
+- **App Manager**: Browse, search, and filter user/system apps, with quick controls to launch, force-stop, clear data, or uninstall.
+- **File Explorer**: Seamlessly browse the device filesystem, pull files to your host machine, and manage directories.
+- **Logcat Viewer**: Live stream device logs with severity filters (Debug, Info, Error, Fatal) and text search highlighting.
+- **Intent Tester**: Construct and send custom activity/broadcast intents to test deep links and receiver behavior.
+- **Port Forwarding**: Easily configure forward and reverse network connections between your host and device.
+
+<details>
+<summary><b>📷 View Screenshots Gallery</b></summary>
+<br />
+
+| Dashboard | Device Info |
+| :---: | :---: |
+| ![Dashboard](website/static/img/screenshots/dashboard_2.png) | ![Device Info](website/static/img/screenshots/device_info_2.png) |
+
+| App Manager | File Explorer |
+| :---: | :---: |
+| ![App Manager](website/static/img/screenshots/app_manager_2.png) | ![File Explorer](website/static/img/screenshots/file_explorer_2.png) |
+
+| Logcat Viewer | Performance Monitor |
+| :---: | :---: |
+| ![Logcat](website/static/img/screenshots/logcat_2.png) | ![Performance](website/static/img/screenshots/performance_2.png) |
+
+| Intent Tester | Port Forwarding |
+| :---: | :---: |
+| ![Intent Tester](website/static/img/screenshots/intent_tester.png) | ![Port Forwarding](website/static/img/screenshots/port_manager.png) |
+
+</details>
+
+---
+
+## 📦 Quick Installation
 
 ### Homebrew (macOS / Linux)
-
 ```bash
 brew install --cask SakshhamTheCoder/tap/adbt
 # or
-brew tap SakshhamTheCoder/tap
-brew install --cask adbt
+brew tap SakshhamTheCoder/tap && brew install --cask adbt
 ```
 
 ### Scoop (Windows)
-
 ```bash
 scoop bucket add SakshhamTheCoder https://github.com/SakshhamTheCoder/scoop-bucket
 scoop install adbt
 ```
 
 ### AUR (Arch Linux)
-
-Install the prebuilt package from AUR (adbt-bin):
-
 ```bash
 yay -S adbt-bin
 # or
 paru -S adbt-bin
 ```
 
-### Linux Packages
-
-Download the `.deb` or `.rpm` files from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
-
-## Keyboard Shortcuts
-
-### Global
-
-| Key               | Action           |
-| ----------------- | ---------------- |
-| `q` / `Ctrl+C`    | Quit             |
-| `Esc`             | Back / Cancel    |
-| `↑` `↓` / `k` `j` | Navigate         |
-| `Enter`           | Select / Confirm |
-
-### Dashboard
-
-| Key | Action              |
-| --- | ------------------- |
-| `d` | Devices             |
-| `m` | Performance Monitor |
-| `a` | App Manager         |
-| `f` | File Explorer       |
-| `l` | Logcat              |
-| `i` | Device Info         |
-
-### App Manager
-
-| Key     | Action               |
-| ------- | -------------------- |
-| `/`     | Search               |
-| `f`     | Filter (User/System) |
-| `s`     | Force Stop           |
-| `x`     | Clear Data           |
-| `u`     | Uninstall            |
-| `Enter` | Launch               |
-
-### File Explorer
-
-| Key         | Action    |
-| ----------- | --------- |
-| `p`         | Pull File |
-| `d`         | Delete    |
-| `Backspace` | Go Up     |
+For manual binary downloads (`.deb`, `.rpm`, or generic archives), check the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases) or the [Installation Docs](https://adbt-tui.vercel.app/docs/installation).
 
 ---
 
-## Contributing
+## ⌨️ Essential Navigation
 
-Contributions are welcome! Fork the repository, create a feature branch, and submit a pull request.
+Once installed, plug in your device and run:
+```bash
+adbt
+```
 
-## License
+| Key | Action |
+| :--- | :--- |
+| `q` / `Ctrl+C` | Quit `adbt` |
+| `Esc` / `Backspace` | Back / Go Up a directory |
+| `↑` `↓` / `k` `j` | Navigate lists and menus |
+| `Enter` | Select / Confirm / Launch |
 
-MIT License
+For the full set of module-specific hotkeys (App Manager, File Explorer, Logcat, etc.), refer to the [Keyboard Shortcuts Cheat Sheet](https://adbt-tui.vercel.app/docs/shortcuts).
+
+---
+
+## 🛠️ Troubleshooting & Support
+
+If you encounter connection issues, unauthorized device screens, or missing ADB paths:
+- Consult the [Troubleshooting & FAQs Guide](https://adbt-tui.vercel.app/docs/troubleshooting).
+- Open an issue on our [GitHub Issue Tracker](https://github.com/SakshhamTheCoder/adbt/issues).
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

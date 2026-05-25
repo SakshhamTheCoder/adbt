@@ -304,17 +304,16 @@ func (a *AppManager) View() string {
 	}
 
 	var staticContent strings.Builder
-	staticContent.WriteString(components.TitleStyle.Render("Installed Applications") + "\n")
 
 	staticContent.WriteString("  ")
 	for i, name := range filterNames {
 		if AppFilter(i) == a.filterType {
-			staticContent.WriteString(components.HelpKeyStyle.Render(name))
+			staticContent.WriteString(components.TabActiveStyle.Render(name))
 		} else {
-			staticContent.WriteString(components.StatusMuted.Render(name))
+			staticContent.WriteString(components.TabInactiveStyle.Render(name))
 		}
 		if i < len(filterNames)-1 {
-			staticContent.WriteString(components.StatusMuted.Render(" / "))
+			staticContent.WriteString(" ")
 		}
 	}
 	staticContent.WriteString("\n")
@@ -329,10 +328,7 @@ func (a *AppManager) View() string {
 		)
 	}
 
-	maxWidth := a.state.Width - 8
-	if maxWidth < 20 {
-		maxWidth = 20
-	}
+	maxWidth := max(a.state.Width-8, 20)
 	truncStyle := lipgloss.NewStyle().MaxWidth(maxWidth)
 
 	var scrollableContent strings.Builder
@@ -380,24 +376,27 @@ func (a *AppManager) View() string {
 
 	var footer string
 	if a.search.Active {
-		footer = components.Help("enter", "apply") + "  " +
-			components.Help("esc", "cancel")
+		footer = components.JoinHelp([2]string{"enter", "apply"}, [2]string{"esc", "cancel"})
 	} else if a.search.Query != "" {
-		footer = components.Help("↑/↓", "navigate") + "  " +
-			components.Help("enter", "launch") + "  " +
-			components.Help("/", "search") + "  " +
-			components.Help("esc", "clear filter")
+		footer = components.JoinHelp(
+			[2]string{"↑/↓", "navigate"},
+			[2]string{"enter", "launch"},
+			[2]string{"/", "search"},
+			[2]string{"esc", "clear filter"},
+		)
 	} else {
-		footer = components.Help("↑/↓", "navigate") + "  " +
-			components.Help("enter", "launch") + "  " +
-			components.Help("i", "install") + "  " +
-			components.Help("s", "stop") + "  " +
-			components.Help("u", "uninstall") + "  " +
-			components.Help("x", "clear") + "  " +
-			components.Help("←/→", "filter") + "  " +
-			components.Help("/", "search") + "  " +
-			components.Help("r", "reload") + "  " +
-			components.Help("esc", "back")
+		footer = components.JoinHelp(
+			[2]string{"↑/↓", "navigate"},
+			[2]string{"enter", "launch"},
+			[2]string{"i", "install"},
+			[2]string{"s", "stop"},
+			[2]string{"u", "uninstall"},
+			[2]string{"x", "clear"},
+			[2]string{"←/→", "filter"},
+			[2]string{"/", "search"},
+			[2]string{"r", "reload"},
+			[2]string{"esc", "back"},
+		)
 	}
 
 	rendered := components.RenderLayoutWithScrollableSection(a.state, components.LayoutWithScrollProps{

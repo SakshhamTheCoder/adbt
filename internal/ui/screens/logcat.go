@@ -104,10 +104,7 @@ func (l *Logcat) View() string {
 
 	filtered := l.filteredLines()
 
-	maxWidth := l.state.Width - 8
-	if maxWidth < 20 {
-		maxWidth = 20
-	}
+	maxWidth := max(l.state.Width-8, 20)
 	truncStyle := lipgloss.NewStyle().MaxWidth(maxWidth)
 
 	var body strings.Builder
@@ -134,13 +131,13 @@ func (l *Logcat) View() string {
 		}
 
 		if i == l.filterLevel {
-			statusLine.WriteString(components.HelpKeyStyle.Render(name))
+			statusLine.WriteString(components.TabActiveStyle.Render(name))
 		} else {
-			statusLine.WriteString(components.StatusMuted.Render(name))
+			statusLine.WriteString(components.TabInactiveStyle.Render(name))
 		}
 
 		if i < len(logLevels)-1 {
-			statusLine.WriteString(components.StatusMuted.Render(" / "))
+			statusLine.WriteString(" ")
 		}
 	}
 
@@ -158,11 +155,13 @@ func (l *Logcat) View() string {
 		Title:             "Logcat",
 		StaticContent:     statusLine.String(),
 		ScrollableContent: body.String(),
-		Footer: components.Help("c", "clear") + "  " +
-			components.Help("s", "start/stop") + "  " +
-			components.Help("←/→", "filter") + "  " +
-			components.Help("/", "search") + "  " +
-			components.Help("esc", "back"),
+		Footer: components.JoinHelp(
+			[2]string{"c", "clear"},
+			[2]string{"s", "start/stop"},
+			[2]string{"←/→", "filter"},
+			[2]string{"/", "search"},
+			[2]string{"esc", "back"},
+		),
 		Viewport: &l.viewport,
 	})
 }

@@ -213,25 +213,21 @@ func (p *Ports) View() string {
 	}
 
 	var staticContent strings.Builder
-	staticContent.WriteString(components.TitleStyle.Render("Port Forwarding") + "\n")
 
 	staticContent.WriteString("  ")
 	for idx, name := range portModeNames {
 		if portMode(idx) == p.mode {
-			staticContent.WriteString(components.HelpKeyStyle.Render(name))
+			staticContent.WriteString(components.TabActiveStyle.Render(name))
 		} else {
-			staticContent.WriteString(components.StatusMuted.Render(name))
+			staticContent.WriteString(components.TabInactiveStyle.Render(name))
 		}
 		if idx < len(portModeNames)-1 {
-			staticContent.WriteString(components.StatusMuted.Render(" / "))
+			staticContent.WriteString(" ")
 		}
 	}
 	staticContent.WriteString("\n")
 
-	maxWidth := p.state.Width - 8
-	if maxWidth < 20 {
-		maxWidth = 20
-	}
+	maxWidth := max(p.state.Width-8, 20)
 	truncStyle := lipgloss.NewStyle().MaxWidth(maxWidth)
 
 	var scrollableContent strings.Builder
@@ -260,12 +256,14 @@ func (p *Ports) View() string {
 		}
 	}
 
-	footer := components.Help("↑/↓", "navigate") + "  " +
-		components.Help("a", "add") + "  " +
-		components.Help("d", "remove") + "  " +
-		components.Help("←/→", "mode") + "  " +
-		components.Help("r", "refresh") + "  " +
-		components.Help("esc", "back")
+	footer := components.JoinHelp(
+		[2]string{"↑/↓", "navigate"},
+		[2]string{"a", "add"},
+		[2]string{"d", "remove"},
+		[2]string{"←/→", "mode"},
+		[2]string{"r", "refresh"},
+		[2]string{"esc", "back"},
+	)
 
 	rendered := components.RenderLayoutWithScrollableSection(p.state, components.LayoutWithScrollProps{
 		Title:             "Ports",

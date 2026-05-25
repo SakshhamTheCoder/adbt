@@ -4,33 +4,27 @@ import (
 	"fmt"
 
 	"github.com/SakshhamTheCoder/adbt/internal/state"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func RenderHeader(appState *state.AppState, screenName string) string {
-	title := fmt.Sprintf("ADBT  |  %s", screenName)
+	width := max(appState.Width, 40)
 
+	appName := LogoStyle.Render("ADBT")
+
+	statusStr := ""
 	if device := appState.SelectedDevice(); device != nil {
-		title += StatusConnected.Render("  ● ")
-		title += StatusMuted.Render(device.DisplayName())
+		statusStr = StatusConnected.Render("●") + " " + StatusMuted.Render(device.DisplayName())
 	} else {
-		title += StatusDisconnected.Render("  ● ")
-		title += StatusMuted.Render("No device")
+		statusStr = StatusDisconnected.Render("●") + " " + StatusMuted.Render("No device")
 	}
 
-	width := appState.Width - 4
-	if width < 20 {
-		width = 20
-	}
+	screenTitle := ScreenTitleStyle.Render(screenName)
+	separator := StatusMuted.Render(" │ ")
 
-	return HeaderStyle.Width(width).Render(title)
-}
+	content := appName + "  " + screenTitle + separator + statusStr
 
-func HeaderTitle(appState *state.AppState, screenName string) string {
-	title := fmt.Sprintf("ADBT  |  %s", screenName)
-	if device := appState.SelectedDevice(); device != nil {
-		return title + "  ● " + device.DisplayName()
-	}
-	return title + "  ● No device"
+	return HeaderStyle.Width(width).Align(lipgloss.Left).Render(content)
 }
 
 func ShellTitle(appState *state.AppState, screenName string) string {

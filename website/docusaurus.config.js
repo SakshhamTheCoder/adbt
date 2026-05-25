@@ -117,8 +117,8 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} SakshhamTheCoder. Built with Docusaurus.`,
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.vsDark,
+        theme: prismThemes.duotoneLight,
+        darkTheme: prismThemes.duotoneDark,
       },
     }),
 };

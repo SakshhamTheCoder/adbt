@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/navigation"
@@ -103,6 +105,18 @@ func (a *App) View() string {
 	if a.state.Width == 0 {
 		return "Initializing..."
 	}
+
+	// Dimension guard
+	minWidth := 60
+	minHeight := 15
+	if a.state.Width < minWidth || a.state.Height < minHeight {
+		msg := fmt.Sprintf("Please increase dimension to at least %dx%d\n(Current: %dx%d)", minWidth, minHeight, a.state.Width, a.state.Height)
+		return components.DimensionGuardStyle.
+			Width(a.state.Width).
+			Height(a.state.Height).
+			Render(msg)
+	}
+
 	return a.currentScreen.View()
 }
 
@@ -115,8 +129,6 @@ func (a *App) cleanupCurrentScreen() tea.Cmd {
 }
 
 func (a *App) setAppTitle() tea.Cmd {
-	// ADBT explicitly requests its title on startup and screen switches. Some
-	// terminals with shell integration may still override titles temporarily.
 	return tea.SetWindowTitle(components.ShellTitle(a.state, screenDisplayTitle(a.screenName)))
 }
 

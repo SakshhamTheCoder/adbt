@@ -23,6 +23,8 @@ sidebar_position: 4
 | `f` | File Explorer       |
 | `l` | Logcat              |
 | `i` | Device Info         |
+| `t` | Intent Tester       |
+| `p` | Port Forwarding     |
 
 ## App Manager
 | Key     | Action               |

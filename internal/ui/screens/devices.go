@@ -150,11 +150,13 @@ func (d *Devices) View() string {
 	rendered := components.RenderLayoutWithScrollableSection(d.state, components.LayoutWithScrollProps{
 		Title:             "Device Selection",
 		ScrollableContent: body.String(),
-		Footer: components.Help("↑/↓", "navigate") + "  " +
-			components.Help("enter", "select") + "  " +
-			components.Help("w", "wireless pair") + "  " +
-			components.Help("r", "refresh") + "  " +
-			components.Help("esc", "back"),
+		Footer: components.JoinHelp(
+			[2]string{"↑/↓", "navigate"},
+			[2]string{"enter", "select"},
+			[2]string{"w", "wireless pair"},
+			[2]string{"r", "refresh"},
+			[2]string{"esc", "back"},
+		),
 	})
 
 	if d.form.Visible {
