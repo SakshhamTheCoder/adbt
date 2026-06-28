@@ -22,6 +22,13 @@ type LifecycleScreen interface {
 	Cleanup() tea.Cmd
 }
 
+// TextCapturingScreen lets a screen signal that it is currently capturing text
+// input, so global single-key shortcuts like "q" are forwarded to it instead of
+// quitting the app.
+type TextCapturingScreen interface {
+	CapturingText() bool
+}
+
 func NewApp() *App {
 	appState := state.New()
 
@@ -43,9 +50,19 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.state.Height = msg.Height
 
 	case tea.KeyMsg:
+		capturing := false
+		if ts, ok := a.currentScreen.(TextCapturingScreen); ok {
+			capturing = ts.CapturingText()
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return a, tea.Batch(a.cleanupCurrentScreen(), tea.Quit)
+
+		case "q":
+			if !capturing {
+				return a, tea.Batch(a.cleanupCurrentScreen(), tea.Quit)
+			}
 
 		case "esc":
 			var cmd tea.Cmd
@@ -90,6 +107,8 @@ func (a *App) switchScreen(name navigation.Screen) (*App, tea.Cmd) {
 		newScreen = screens.NewIntents(a.state)
 	case navigation.ScreenPorts:
 		newScreen = screens.NewPorts(a.state)
+	case navigation.ScreenInput:
+		newScreen = screens.NewInput(a.state)
 
 	default:
 		return a, nil

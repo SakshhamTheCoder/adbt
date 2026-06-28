@@ -18,6 +18,7 @@ const (
 	ScreenPerfMonitor Screen = "perf_monitor"
 	ScreenIntents     Screen = "intents"
 	ScreenPorts       Screen = "ports"
+	ScreenInput       Screen = "input"
 )
 
 type ScreenMeta struct {
@@ -37,6 +38,7 @@ var Registry = map[Screen]ScreenMeta{
 	ScreenPerfMonitor: {Title: "Performance", RequireDevice: true},
 	ScreenIntents:     {Title: "Intents", RequireDevice: true},
 	ScreenPorts:       {Title: "Ports", RequireDevice: true},
+	ScreenInput:       {Title: "Input", RequireDevice: true},
 }
 
 // Navigate switches to the given screen, redirecting to device selection when
