@@ -2,6 +2,7 @@ package screens
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
@@ -21,9 +22,10 @@ type Files struct {
 
 	viewport viewport.Model
 
-	confirm  components.ConfirmPrompt
-	toast    components.Toast
-	pushForm components.FormModal
+	confirm   components.ConfirmPrompt
+	toast     components.Toast
+	pushForm  components.FormModal
+	mkdirForm components.FormModal
 }
 
 func NewFiles(state *state.AppState) *Files {
@@ -71,6 +73,27 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return f, nil
 		}
 		return f, f.pushForm.Update(msg)
+	}
+
+	if f.mkdirForm.Visible {
+		switch msg := msg.(type) {
+		case components.FormSubmitMsg:
+			values := msg.Values
+			f.mkdirForm.Hide()
+			name := ""
+			if len(values) > 0 {
+				name = strings.TrimSpace(values[0])
+			}
+			if name != "" {
+				target := strings.TrimRight(f.path, "/") + "/" + name
+				return f, adb.MakeDirCmd(f.state.DeviceSerial(), target)
+			}
+			return f, nil
+		case components.FormCancelMsg:
+			f.mkdirForm.Hide()
+			return f, nil
+		}
+		return f, f.mkdirForm.Update(msg)
 	}
 
 	if f.confirm.Visible {
@@ -190,6 +213,11 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				{Label: "Local Path", Value: ""},
 			})
 
+		case "n":
+			f.mkdirForm.Show("New Folder", []components.FormField{
+				{Label: "Folder Name", Value: ""},
+			})
+
 		default:
 			return f, f.updateViewport(msg)
 		}
@@ -267,6 +295,7 @@ func (f *Files) View() string {
 				[2]string{"backspace", "up"},
 				[2]string{"p", "pull"},
 				[2]string{"u", "push"},
+				[2]string{"n", "new folder"},
 				[2]string{"d", "delete"},
 				[2]string{"r", "refresh"},
 				[2]string{"esc", "back"},
@@ -277,6 +306,10 @@ func (f *Files) View() string {
 
 	if f.pushForm.Visible {
 		rendered = components.RenderFormOverlay(rendered, f.pushForm, f.state)
+	}
+
+	if f.mkdirForm.Visible {
+		rendered = components.RenderFormOverlay(rendered, f.mkdirForm, f.state)
 	}
 
 	if f.confirm.Visible {
