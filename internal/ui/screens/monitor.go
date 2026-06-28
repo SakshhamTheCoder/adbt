@@ -27,6 +27,7 @@ type PerfMonitor struct {
 	txRate     uint64 // bytes per second
 
 	active bool
+	errMsg string
 }
 
 type TickMsg time.Time
@@ -73,9 +74,11 @@ func (m *PerfMonitor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case adb.SystemStatsMsg:
 		if msg.Error != nil {
-			// Handle error silently or show toast? For now silent catch up next tick
+			// Surface the failure; the next tick will retry and clear it on success.
+			m.errMsg = msg.Error.Error()
 			return m, nil
 		}
+		m.errMsg = ""
 
 		newStats := msg.Stats
 
@@ -156,14 +159,11 @@ func (m *PerfMonitor) View() string {
 		fmt.Sprintf("↓ %s   ↑ %s", rxStr, txStr),
 	)
 
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		"",
-		cpuRow,
-		"",
-		memRow,
-		"",
-		netRow,
-	)
+	rows := []string{"", cpuRow, "", memRow, "", netRow}
+	if m.errMsg != "" {
+		rows = append(rows, "", components.ErrorStyle.Render("Failed to read stats: "+m.errMsg))
+	}
+	content := lipgloss.JoinVertical(lipgloss.Left, rows...)
 
 	return components.RenderLayout(
 		m.state,

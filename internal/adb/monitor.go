@@ -32,17 +32,16 @@ type SystemStatsMsg struct {
 func GetSystemStatsCmd(serial string) tea.Cmd {
 	return func() tea.Msg {
 		var stats SystemStats
-		var err error
 
-		// 1. CPU
+		// 1. CPU — also acts as the connectivity check. If this fails the
+		// device is unreachable, so report the error instead of zeroed stats.
 		out, err := ExecuteCommand(serial, "shell", "cat", "/proc/stat")
-		if err == nil {
-			localTotal, localIdle := parseCPUStats(string(out))
-			stats.CPUTotal = localTotal
-			stats.CPUIdle = localIdle
+		if err != nil {
+			return SystemStatsMsg{Error: err}
 		}
+		stats.CPUTotal, stats.CPUIdle = parseCPUStats(string(out))
 
-		// 2. Memory
+		// 2. Memory — best effort.
 		out, err = ExecuteCommand(serial, "shell", "cat", "/proc/meminfo")
 		if err == nil {
 			t, a := parseMemInfo(string(out))
@@ -53,7 +52,7 @@ func GetSystemStatsCmd(serial string) tea.Cmd {
 			}
 		}
 
-		// 3. Network
+		// 3. Network — best effort.
 		out, err = ExecuteCommand(serial, "shell", "cat", "/proc/net/dev")
 		if err == nil {
 			rx, tx := parseNetDev(string(out))
