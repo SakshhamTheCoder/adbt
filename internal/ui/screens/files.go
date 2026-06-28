@@ -36,6 +36,11 @@ func NewFiles(state *state.AppState) *Files {
 	}
 }
 
+// CapturingText keeps "q" out of the global quit handler while a form is open.
+func (f *Files) CapturingText() bool {
+	return f.pushForm.Visible || f.mkdirForm.Visible
+}
+
 func (f *Files) Init() tea.Cmd {
 	if !f.state.HasDevice() {
 		return nil

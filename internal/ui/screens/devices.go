@@ -26,6 +26,11 @@ func NewDevices(state *state.AppState) *Devices {
 	return &Devices{state: state}
 }
 
+// CapturingText keeps "q" out of the global quit handler while the pair form is open.
+func (d *Devices) CapturingText() bool {
+	return d.form.Visible
+}
+
 func (d *Devices) Init() tea.Cmd {
 	d.loading = true
 	return adb.ListDevicesCmd()
