@@ -25,10 +25,11 @@ type AppFilter int
 var filterNames = []string{"All", "User", "System"}
 
 type AppManager struct {
-	state   *state.AppState
-	apps    []adb.App
-	loading bool
-	cursor  int
+	state    *state.AppState
+	apps     []adb.App
+	filtered []adb.App // cache of apps after search/filter; rebuilt via applyFilter
+	loading  bool
+	cursor   int
 
 	search components.SearchState
 
@@ -59,8 +60,10 @@ func (a *AppManager) Init() tea.Cmd {
 	return adb.ListAppsCmd(a.state.DeviceSerial())
 }
 
-func (a *AppManager) filteredApps() []adb.App {
-	var filtered []adb.App
+// applyFilter rebuilds the cached filtered list. Call it whenever the app list,
+// search query, or filter type changes.
+func (a *AppManager) applyFilter() {
+	filtered := a.filtered[:0]
 	lowerSearch := strings.ToLower(a.search.Query)
 
 	for _, app := range a.apps {
@@ -84,15 +87,14 @@ func (a *AppManager) filteredApps() []adb.App {
 		filtered = append(filtered, app)
 	}
 
-	return filtered
+	a.filtered = filtered
 }
 
 func (a *AppManager) selectedApp() *adb.App {
-	filtered := a.filteredApps()
-	if len(filtered) == 0 || a.cursor >= len(filtered) {
+	if len(a.filtered) == 0 || a.cursor >= len(a.filtered) {
 		return nil
 	}
-	return &filtered[a.cursor]
+	return &a.filtered[a.cursor]
 }
 
 func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -157,6 +159,7 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case adb.AppsLoadedMsg:
 		a.loading = false
 		a.apps = msg.Apps
+		a.applyFilter()
 		a.cursor = 0
 		a.gotoTop()
 		return a, nil
@@ -200,13 +203,14 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			before := a.search.Query
 			a.search.HandleKey(msg)
 			if a.search.Query != before {
+				a.applyFilter()
 				a.cursor = 0
 				a.gotoTop()
 			}
 			return a, consumeKeyCmd()
 		}
 
-		filtered := a.filteredApps()
+		filtered := a.filtered
 
 		switch msg.String() {
 		case "up", "k":
@@ -274,17 +278,20 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "right":
 			a.filterType = (a.filterType + 1) % 3
+			a.applyFilter()
 			a.cursor = 0
 			a.gotoTop()
 
 		case "left":
 			a.filterType = (a.filterType + 2) % 3
+			a.applyFilter()
 			a.cursor = 0
 			a.gotoTop()
 
 		case "esc":
 			if a.search.Query != "" {
 				a.search.Clear()
+				a.applyFilter()
 				a.cursor = 0
 				a.gotoTop()
 				return a, consumeKeyCmd()
@@ -336,7 +343,7 @@ func (a *AppManager) View() string {
 	if a.loading {
 		scrollableContent.WriteString(components.StatusMuted.Render("Loading apps..."))
 	} else {
-		filtered := a.filteredApps()
+		filtered := a.filtered
 
 		if len(filtered) == 0 {
 			scrollableContent.WriteString(components.StatusMuted.Render("No apps found"))
