@@ -2,7 +2,10 @@ package adb
 
 import (
 	"bufio"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,19 +22,42 @@ type LogcatStartedMsg struct {
 	Session *LogcatSession
 }
 
+// Line/Stopped/Error messages carry the session they came from so the UI can
+// ignore stale output after the stream is restarted with a new filter.
 type LogcatLineMsg struct {
-	Line string
+	Session *LogcatSession
+	Line    string
 }
 
 type LogcatErrorMsg struct {
+	Session *LogcatSession
+	Error   error
+}
+
+type LogcatStoppedMsg struct {
+	Session *LogcatSession
+}
+
+type PidResolvedMsg struct {
+	Pkg   string
+	Pid   string
 	Error error
 }
 
-type LogcatStoppedMsg struct{}
+type LogcatSavedMsg struct {
+	Path  string
+	Error error
+}
 
-func StartLogcatCmd(serial string) tea.Cmd {
+// StartLogcatCmd starts a logcat stream. When pid is non-empty the stream is
+// limited to that process via --pid.
+func StartLogcatCmd(serial, pid string) tea.Cmd {
 	return func() tea.Msg {
-		cmd := exec.Command("adb", "-s", serial, "logcat")
+		args := []string{"-s", serial, "logcat"}
+		if pid != "" {
+			args = append(args, "--pid="+pid)
+		}
+		cmd := exec.Command("adb", args...)
 
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -56,15 +82,46 @@ func StartLogcatCmd(serial string) tea.Cmd {
 func NextLogcatLineCmd(s *LogcatSession) tea.Cmd {
 	return func() tea.Msg {
 		if s.scanner.Scan() {
-			return LogcatLineMsg{Line: s.scanner.Text()}
+			return LogcatLineMsg{Session: s, Line: s.scanner.Text()}
 		}
 
 		if err := s.scanner.Err(); err != nil {
-			return LogcatErrorMsg{Error: err}
+			return LogcatErrorMsg{Session: s, Error: err}
 		}
 
 		_ = s.Stop()
-		return LogcatStoppedMsg{}
+		return LogcatStoppedMsg{Session: s}
+	}
+}
+
+// ResolvePidCmd resolves a package name to its (single) running PID.
+func ResolvePidCmd(serial, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		out, err := ExecuteCommand(serial, "shell", "pidof", "-s", pkg)
+		if err != nil {
+			return PidResolvedMsg{Pkg: pkg, Error: err}
+		}
+
+		pid := strings.TrimSpace(string(out))
+		if fields := strings.Fields(pid); len(fields) > 0 {
+			pid = fields[0]
+		}
+		return PidResolvedMsg{Pkg: pkg, Pid: pid}
+	}
+}
+
+// SaveLogcatCmd writes the given lines to a timestamped file in the default save dir.
+func SaveLogcatCmd(lines []string) tea.Cmd {
+	return func() tea.Msg {
+		path := filepath.Join(DefaultSaveDir(), TimestampedName("logcat", ".txt"))
+		data := strings.Join(lines, "\n")
+		if len(lines) > 0 {
+			data += "\n"
+		}
+		if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+			return LogcatSavedMsg{Error: err}
+		}
+		return LogcatSavedMsg{Path: path}
 	}
 }
 
