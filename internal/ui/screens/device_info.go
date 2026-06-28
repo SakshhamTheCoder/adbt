@@ -18,6 +18,7 @@ type deviceAction struct {
 	label       string
 	cmd         func(string) tea.Cmd
 	destructive bool
+	record      bool
 }
 
 type DeviceInfo struct {
@@ -28,24 +29,47 @@ type DeviceInfo struct {
 	confirm components.ConfirmPrompt
 	pending *deviceAction
 
-	toast   components.Toast
-	details *adb.DeviceDetails
-	loading bool
+	toast     components.Toast
+	details   *adb.DeviceDetails
+	loading   bool
+	recording *adb.ScreenRecordSession
 }
 
 func NewDeviceInfo(state *state.AppState) *DeviceInfo {
 	return &DeviceInfo{
 		state: state,
 		actions: []deviceAction{
-			{"c", "Start scrcpy", adb.StartScrcpyCmd, false},
-			{"w", "Toggle Wi-Fi", adb.ToggleWifiCmd, false},
-			{"s", "Toggle Screen", adb.ToggleScreenCmd, false},
+			{"c", "Start scrcpy", adb.StartScrcpyCmd, false, false},
+			{"w", "Toggle Wi-Fi", adb.ToggleWifiCmd, false, false},
+			{"s", "Toggle Screen", adb.ToggleScreenCmd, false, false},
+			{"p", "Screenshot", adb.ScreenshotCmd, false, false},
+			{"v", "Screen record", nil, false, true},
 
-			{"r", "Reboot device", adb.RebootCmd, true},
-			{"R", "Reboot to recovery", adb.RebootRecoveryCmd, true},
-			{"b", "Reboot to bootloader", adb.RebootBootloaderCmd, true},
+			{"r", "Reboot device", adb.RebootCmd, true, false},
+			{"R", "Reboot to recovery", adb.RebootRecoveryCmd, true, false},
+			{"b", "Reboot to bootloader", adb.RebootBootloaderCmd, true, false},
 		},
 	}
+}
+
+// Cleanup finalizes an in-progress recording when leaving the screen so the file
+// is still saved to the host.
+func (d *DeviceInfo) Cleanup() tea.Cmd {
+	if d.recording != nil {
+		session := d.recording
+		d.recording = nil
+		return adb.StopScreenRecordCmd(session)
+	}
+	return nil
+}
+
+func (d *DeviceInfo) toggleRecording() tea.Cmd {
+	if d.recording != nil {
+		session := d.recording
+		d.recording = nil
+		return adb.StopScreenRecordCmd(session)
+	}
+	return adb.StartScreenRecordCmd(d.state.DeviceSerial())
 }
 
 func (d *DeviceInfo) Init() tea.Cmd {
@@ -131,12 +155,44 @@ func (d *DeviceInfo) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			3*time.Second,
 		)
 		return d, cmd
+
+	case adb.ScreenRecordStartedMsg:
+		if msg.Error != nil {
+			var cmd tea.Cmd
+			d.toast, cmd = components.ShowToast(
+				"recording failed: "+msg.Error.Error(),
+				true,
+				3*time.Second,
+			)
+			return d, cmd
+		}
+		d.recording = msg.Session
+		var cmd tea.Cmd
+		d.toast, cmd = components.ShowToast("Recording… press v to stop", false, 2*time.Second)
+		return d, cmd
+
+	case adb.CaptureResultMsg:
+		var cmd tea.Cmd
+		if msg.Error != nil {
+			d.toast, cmd = components.ShowToast(
+				msg.Action+" failed: "+msg.Error.Error(),
+				true,
+				3*time.Second,
+			)
+		} else {
+			d.toast, cmd = components.ShowToast("Saved to "+msg.Path, false, 3*time.Second)
+		}
+		return d, cmd
 	}
 
 	return d, nil
 }
 
 func (d *DeviceInfo) triggerAction(a deviceAction) tea.Cmd {
+	if a.record {
+		return d.toggleRecording()
+	}
+
 	if a.destructive {
 		d.pending = &a
 		d.confirm.Show(a.label + "?")
@@ -226,7 +282,12 @@ func (d *DeviceInfo) View() string {
 			line = "› "
 		}
 
-		paddedLabel := fmt.Sprintf("%-22s", a.label)
+		label := a.label
+		if a.record && d.recording != nil {
+			label = "Stop recording"
+		}
+
+		paddedLabel := fmt.Sprintf("%-22s", label)
 		if i == d.cursor {
 			line += components.HelpKeyStyle.Render("[" + a.key + "]")
 			line += " " + components.ListItemSelectedStyle.Render(paddedLabel)
@@ -237,6 +298,10 @@ func (d *DeviceInfo) View() string {
 
 		if a.destructive {
 			line += " " + components.ErrorStyle.Render("!")
+		}
+
+		if a.record && d.recording != nil {
+			line += " " + components.StatusDisconnected.Render("● REC")
 		}
 
 		body.WriteString(line + "\n")
