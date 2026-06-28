@@ -30,10 +30,12 @@ For detailed guides, shortcuts, and troubleshooting, visit the [adbt Documentati
 
 - **Device Management**: Real-time connected device detection, wireless pairing (QR code logic/PIN), detailed device info, and power/reboot controls.
 - **Scrcpy Integration**: Launch high-performance screen mirroring with a single keypress.
-- **Performance Monitor**: Real-time visual graphs for device CPU, memory, and network usage.
-- **App Manager**: Browse, search, and filter user/system apps, with quick controls to launch, force-stop, clear data, or uninstall.
-- **File Explorer**: Seamlessly browse the device filesystem, pull files to your host machine, and manage directories.
-- **Logcat Viewer**: Live stream device logs with severity filters (Debug, Info, Error, Fatal) and text search highlighting.
+- **Screen Capture**: Take screenshots and record the screen straight from Device Info, saved to your host machine.
+- **Performance Monitor**: Real-time CPU, memory, and network usage, plus live battery and thermal readouts.
+- **App Manager**: Browse, search, and filter user/system apps; inspect per-app details (version, size, target SDK); multi-select for batch uninstall; install or extract APKs; and launch, force-stop, or clear data.
+- **File Explorer**: Browse the device filesystem, push and pull files, create directories, and delete with confirmation.
+- **Logcat Viewer**: Live stream device logs with severity filters, text search highlighting, filtering by package/PID, and one-key save to a file.
+- **Input Sender**: Type text and send key events (Back, Home, Recents, arrows, and more) to the device, with an optional live keystroke-forwarding mode.
 - **Intent Tester**: Construct and send custom activity/broadcast intents to test deep links and receiver behavior.
 - **Port Forwarding**: Easily configure forward and reverse network connections between your host and device.
 
@@ -56,6 +58,10 @@ For detailed guides, shortcuts, and troubleshooting, visit the [adbt Documentati
 | Intent Tester | Port Forwarding |
 | :---: | :---: |
 | ![Intent Tester](website/static/img/screenshots/intent_tester.png) | ![Port Forwarding](website/static/img/screenshots/port_manager.png) |
+
+<!-- TODO(screenshots): the App Manager (detail pane + multi-select), Performance Monitor (battery/thermal),
+     Device Info (screenshot/record), and File Explorer (push/new folder) shots above predate those features
+     and should be refreshed. Add an Input Sender screenshot at website/static/img/screenshots/input.png. -->
 
 </details>
 
