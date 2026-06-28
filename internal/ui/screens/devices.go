@@ -96,7 +96,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(d.state.Devices) > 0 {
 				d.state.SelectDevice(d.state.Devices[d.cursor].Serial)
 				return d, func() tea.Msg {
-					return navigation.SwitchScreenMsg{Screen: "dashboard"}
+					return navigation.SwitchScreenMsg{Screen: navigation.ScreenDashboard}
 				}
 			}
 
