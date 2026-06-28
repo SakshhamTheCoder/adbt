@@ -1,7 +1,6 @@
 package screens
 
 import (
-	"os"
 	"path/filepath"
 	"time"
 
@@ -161,11 +160,7 @@ func (f *Files) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return f, cmd
 			}
 
-			home, err := os.UserHomeDir()
-			if err != nil {
-				home = "/tmp"
-			}
-			localPath := filepath.Join(home, "Downloads", entry.Name)
+			localPath := filepath.Join(adb.DefaultSaveDir(), entry.Name)
 
 			var toastCmd tea.Cmd
 			f.toast, toastCmd = components.ShowToast(
