@@ -2,10 +2,17 @@ package adb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
+
+// commandTimeout bounds one-shot adb calls so an offline or unauthorized device
+// can't hang the UI forever. Streaming commands (logcat, scrcpy) don't go
+// through ExecuteCommand and are unaffected.
+const commandTimeout = 30 * time.Second
 
 func ExecuteCommand(serial string, args ...string) ([]byte, error) {
 	var cmdArgs []string
@@ -14,13 +21,27 @@ func ExecuteCommand(serial string, args ...string) ([]byte, error) {
 	}
 	cmdArgs = append(cmdArgs, args...)
 
-	cmd := exec.Command("adb", cmdArgs...)
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "adb", cmdArgs...)
 	out, err := cmd.CombinedOutput()
 
+	if ctx.Err() == context.DeadlineExceeded {
+		return out, fmt.Errorf("adb timed out after %s (is the device responsive?)", commandTimeout)
+	}
 	if err != nil {
 		return out, fmt.Errorf("%w: %s", err, bytes.TrimSpace(out))
 	}
 	return out, nil
+}
+
+// EnsureAvailable reports whether the adb binary can be found on PATH.
+func EnsureAvailable() error {
+	if _, err := exec.LookPath("adb"); err != nil {
+		return fmt.Errorf("adb not found in PATH")
+	}
+	return nil
 }
 
 func GetProperty(serial, prop string) (string, error) {
