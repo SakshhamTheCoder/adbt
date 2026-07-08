@@ -14,12 +14,19 @@ import (
 type App struct {
 	state         *state.AppState
 	currentScreen tea.Model
-	screenName    string
+	screenName    navigation.Screen
 }
 
 type LifecycleScreen interface {
 	tea.Model
 	Cleanup() tea.Cmd
+}
+
+// TextCapturingScreen lets a screen signal that it is currently capturing text
+// input, so global single-key shortcuts like "q" are forwarded to it instead of
+// quitting the app.
+type TextCapturingScreen interface {
+	CapturingText() bool
 }
 
 func NewApp() *App {
@@ -28,7 +35,7 @@ func NewApp() *App {
 	return &App{
 		state:         appState,
 		currentScreen: screens.NewDashboard(appState),
-		screenName:    "dashboard",
+		screenName:    navigation.ScreenDashboard,
 	}
 }
 
@@ -43,9 +50,19 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.state.Height = msg.Height
 
 	case tea.KeyMsg:
+		capturing := false
+		if ts, ok := a.currentScreen.(TextCapturingScreen); ok {
+			capturing = ts.CapturingText()
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return a, tea.Batch(a.cleanupCurrentScreen(), tea.Quit)
+
+		case "q":
+			if !capturing {
+				return a, tea.Batch(a.cleanupCurrentScreen(), tea.Quit)
+			}
 
 		case "esc":
 			var cmd tea.Cmd
@@ -53,8 +70,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if cmd != nil {
 				return a, cmd
 			}
-			if a.screenName != "dashboard" {
-				return a.switchScreen("dashboard")
+			if a.screenName != navigation.ScreenDashboard {
+				return a.switchScreen(navigation.ScreenDashboard)
 			}
 			return a, nil
 		}
@@ -68,28 +85,30 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-func (a *App) switchScreen(name string) (*App, tea.Cmd) {
+func (a *App) switchScreen(name navigation.Screen) (*App, tea.Cmd) {
 	var newScreen tea.Model
 
 	switch name {
-	case "apps":
+	case navigation.ScreenApps:
 		newScreen = screens.NewAppManager(a.state)
-	case "dashboard":
+	case navigation.ScreenDashboard:
 		newScreen = screens.NewDashboard(a.state)
-	case "devices":
+	case navigation.ScreenDevices:
 		newScreen = screens.NewDevices(a.state)
-	case "device_info":
+	case navigation.ScreenDeviceInfo:
 		newScreen = screens.NewDeviceInfo(a.state)
-	case "files":
+	case navigation.ScreenFiles:
 		newScreen = screens.NewFiles(a.state)
-	case "logcat":
+	case navigation.ScreenLogcat:
 		newScreen = screens.NewLogcat(a.state)
-	case "perf_monitor":
+	case navigation.ScreenPerfMonitor:
 		newScreen = screens.NewPerfMonitor(a.state)
-	case "intents":
+	case navigation.ScreenIntents:
 		newScreen = screens.NewIntents(a.state)
-	case "ports":
+	case navigation.ScreenPorts:
 		newScreen = screens.NewPorts(a.state)
+	case navigation.ScreenInput:
+		newScreen = screens.NewInput(a.state)
 
 	default:
 		return a, nil
@@ -107,10 +126,8 @@ func (a *App) View() string {
 	}
 
 	// Dimension guard
-	minWidth := 60
-	minHeight := 15
-	if a.state.Width < minWidth || a.state.Height < minHeight {
-		msg := fmt.Sprintf("Please increase dimension to at least %dx%d\n(Current: %dx%d)", minWidth, minHeight, a.state.Width, a.state.Height)
+	if a.state.Width < components.MinScreenWidth || a.state.Height < components.MinScreenHeight {
+		msg := fmt.Sprintf("Please increase dimension to at least %dx%d\n(Current: %dx%d)", components.MinScreenWidth, components.MinScreenHeight, a.state.Width, a.state.Height)
 		return components.DimensionGuardStyle.
 			Width(a.state.Width).
 			Height(a.state.Height).
@@ -129,30 +146,9 @@ func (a *App) cleanupCurrentScreen() tea.Cmd {
 }
 
 func (a *App) setAppTitle() tea.Cmd {
-	return tea.SetWindowTitle(components.ShellTitle(a.state, screenDisplayTitle(a.screenName)))
-}
-
-func screenDisplayTitle(name string) string {
-	switch name {
-	case "apps":
-		return "Apps"
-	case "dashboard":
-		return "Dashboard"
-	case "devices":
-		return "Device Selection"
-	case "device_info":
-		return "Device Info"
-	case "files":
-		return "Files"
-	case "logcat":
-		return "Logcat"
-	case "perf_monitor":
-		return "Performance"
-	case "intents":
-		return "Intents"
-	case "ports":
-		return "Ports"
-	default:
-		return name
+	title := navigation.Registry[a.screenName].Title
+	if title == "" {
+		title = string(a.screenName)
 	}
+	return tea.SetWindowTitle(components.ShellTitle(a.state, title))
 }

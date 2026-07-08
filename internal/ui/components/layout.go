@@ -9,6 +9,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Minimum terminal size the UI is laid out for. Below this the app shows a
+// dimension guard instead of rendering a screen.
+const (
+	MinScreenWidth  = 60
+	MinScreenHeight = 15
+)
+
 type ScrollableLayoutProps struct {
 	Title             string
 	StaticContent     string

@@ -26,6 +26,11 @@ func NewDevices(state *state.AppState) *Devices {
 	return &Devices{state: state}
 }
 
+// CapturingText keeps "q" out of the global quit handler while the pair form is open.
+func (d *Devices) CapturingText() bool {
+	return d.form.Visible
+}
+
 func (d *Devices) Init() tea.Cmd {
 	d.loading = true
 	return adb.ListDevicesCmd()
@@ -96,7 +101,7 @@ func (d *Devices) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(d.state.Devices) > 0 {
 				d.state.SelectDevice(d.state.Devices[d.cursor].Serial)
 				return d, func() tea.Msg {
-					return navigation.SwitchScreenMsg{Screen: "dashboard"}
+					return navigation.SwitchScreenMsg{Screen: navigation.ScreenDashboard}
 				}
 			}
 

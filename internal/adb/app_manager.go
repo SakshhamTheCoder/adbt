@@ -2,6 +2,7 @@ package adb
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -29,6 +30,95 @@ type AppActionResultMsg struct {
 type AppActionErrorMsg struct {
 	Action string
 	Error  error
+}
+
+type AppDetails struct {
+	VersionName string
+	VersionCode string
+	TargetSdk   string
+	Size        string
+}
+
+type AppDetailsMsg struct {
+	Pkg     string
+	Details AppDetails
+	Error   error
+}
+
+// AppDetailsCmd fetches version/target-sdk from dumpsys and the APK size for one
+// package. Issued lazily for the selected app only.
+func AppDetailsCmd(serial, pkg, apkPath string) tea.Cmd {
+	return func() tea.Msg {
+		out, err := ExecuteCommand(serial, "shell", "dumpsys", "package", pkg)
+		if err != nil {
+			return AppDetailsMsg{Pkg: pkg, Error: err}
+		}
+		d := parseAppDetails(string(out))
+
+		if apkPath != "" {
+			if sizeOut, err := ExecuteCommand(serial, "shell", "stat", "-c", "%s", apkPath); err == nil {
+				d.Size = FormatFileSize(strings.TrimSpace(string(sizeOut)))
+			}
+		}
+
+		return AppDetailsMsg{Pkg: pkg, Details: d}
+	}
+}
+
+func parseAppDetails(output string) AppDetails {
+	var d AppDetails
+
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if d.VersionName == "" {
+			if v, ok := fieldAfter(line, "versionName="); ok {
+				d.VersionName = v
+			}
+		}
+		if d.VersionCode == "" {
+			if v, ok := fieldAfter(line, "versionCode="); ok {
+				d.VersionCode = v
+			}
+		}
+		if d.TargetSdk == "" {
+			if v, ok := fieldAfter(line, "targetSdk="); ok {
+				d.TargetSdk = v
+			}
+		}
+	}
+
+	return d
+}
+
+// fieldAfter returns the whitespace-delimited token following key in line.
+func fieldAfter(line, key string) (string, bool) {
+	idx := strings.Index(line, key)
+	if idx == -1 {
+		return "", false
+	}
+	rest := line[idx+len(key):]
+	if sp := strings.IndexByte(rest, ' '); sp != -1 {
+		rest = rest[:sp]
+	}
+	rest = strings.TrimSpace(rest)
+	if rest == "" {
+		return "", false
+	}
+	return rest, true
+}
+
+// ExtractApkCmd pulls an installed app's base APK to the host.
+func ExtractApkCmd(serial, apkPath, pkg string) tea.Cmd {
+	return func() tea.Msg {
+		if apkPath == "" {
+			return AppActionErrorMsg{Action: "extract", Error: fmt.Errorf("no apk path for %s", pkg)}
+		}
+		local := filepath.Join(DefaultSaveDir(), pkg+".apk")
+		if _, err := ExecuteCommand(serial, "pull", apkPath, local); err != nil {
+			return AppActionErrorMsg{Action: "extract", Error: err}
+		}
+		return AppActionResultMsg{Action: "extract"}
+	}
 }
 
 func ParseApps(output []byte) []App {

@@ -158,6 +158,23 @@ func PullFileCmd(serial, remotePath, localPath string) tea.Cmd {
 	}
 }
 
+func MakeDirCmd(serial, path string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := ExecuteCommand(
+			serial,
+			"shell",
+			"mkdir",
+			"-p",
+			path,
+		)
+
+		return FileActionResultMsg{
+			Action: "mkdir",
+			Error:  err,
+		}
+	}
+}
+
 func PushFileCmd(serial, localPath, remotePath string) tea.Cmd {
 	return func() tea.Msg {
 		_, err := ExecuteCommand(

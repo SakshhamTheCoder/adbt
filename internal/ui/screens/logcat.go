@@ -2,6 +2,7 @@ package screens
 
 import (
 	"strings"
+	"time"
 
 	"github.com/SakshhamTheCoder/adbt/internal/adb"
 	"github.com/SakshhamTheCoder/adbt/internal/state"
@@ -21,8 +22,12 @@ type Logcat struct {
 	running bool
 
 	filterLevel int
+	pidFilter   string
 	search      components.SearchState
 	viewport    viewport.Model
+
+	filterForm components.FormModal
+	toast      components.Toast
 }
 
 func NewLogcat(state *state.AppState) *Logcat {
@@ -37,10 +42,29 @@ func (l *Logcat) Init() tea.Cmd {
 		return nil
 	}
 	l.running = true
-	return tea.Batch(tea.SetWindowTitle(components.ShellTitle(l.state, "Logcat")), adb.StartLogcatCmd(l.state.DeviceSerial()))
+	return tea.Batch(tea.SetWindowTitle(components.ShellTitle(l.state, "Logcat")), adb.StartLogcatCmd(l.state.DeviceSerial(), l.pidFilter))
+}
+
+// CapturingText keeps "q" out of the global quit handler while typing a filter or search.
+func (l *Logcat) CapturingText() bool {
+	return l.search.Active || l.filterForm.Visible
 }
 
 func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	l.toast.Update(msg)
+
+	if l.filterForm.Visible {
+		switch m := msg.(type) {
+		case components.FormSubmitMsg:
+			l.filterForm.Hide()
+			return l, l.applyFilterInput(m.Values)
+		case components.FormCancelMsg:
+			l.filterForm.Hide()
+			return l, nil
+		}
+		return l, l.filterForm.Update(msg)
+	}
+
 	switch msg := msg.(type) {
 
 	case adb.LogcatStartedMsg:
@@ -49,6 +73,9 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return l, tea.Batch(tea.SetWindowTitle(components.ShellTitle(l.state, "Logcat")), adb.NextLogcatLineCmd(l.session))
 
 	case adb.LogcatLineMsg:
+		if msg.Session != l.session {
+			return l, nil // stale line from a restarted stream
+		}
 		l.lines = append(l.lines, msg.Line)
 		if len(l.lines) > 1000 {
 			l.lines = l.lines[len(l.lines)-1000:]
@@ -61,7 +88,35 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case adb.LogcatStoppedMsg:
-		l.running = false
+		if msg.Session == l.session {
+			l.running = false
+		}
+
+	case adb.LogcatErrorMsg:
+		if msg.Session == l.session || msg.Session == nil {
+			l.running = false
+			var cmd tea.Cmd
+			l.toast, cmd = components.ShowToast("Logcat error: "+msg.Error.Error(), true, 3*time.Second)
+			return l, cmd
+		}
+
+	case adb.PidResolvedMsg:
+		if msg.Error != nil || msg.Pid == "" {
+			var cmd tea.Cmd
+			l.toast, cmd = components.ShowToast(msg.Pkg+" is not running", true, 3*time.Second)
+			return l, cmd
+		}
+		l.pidFilter = msg.Pid
+		return l, l.restart()
+
+	case adb.LogcatSavedMsg:
+		var cmd tea.Cmd
+		if msg.Error != nil {
+			l.toast, cmd = components.ShowToast("Save failed: "+msg.Error.Error(), true, 3*time.Second)
+		} else {
+			l.toast, cmd = components.ShowToast("Saved to "+msg.Path, false, 3*time.Second)
+		}
+		return l, cmd
 
 	case tea.KeyMsg:
 		if l.search.Active {
@@ -84,6 +139,12 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			l.filterLevel = (l.filterLevel + len(logLevels) - 1) % len(logLevels)
 		case "/":
 			l.search.Start()
+		case "p":
+			l.filterForm.Show("Filter by package or PID", []components.FormField{
+				{Label: "Package or PID", Value: l.pidFilter},
+			})
+		case "w":
+			return l, adb.SaveLogcatCmd(l.filteredLines())
 		case "esc":
 			if l.search.Query != "" {
 				l.search.Clear()
@@ -95,6 +156,56 @@ func (l *Logcat) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return l, nil
+}
+
+// applyFilterInput sets the pid filter from a package name or numeric PID and restarts.
+func (l *Logcat) applyFilterInput(values []string) tea.Cmd {
+	input := ""
+	if len(values) > 0 {
+		input = strings.TrimSpace(values[0])
+	}
+
+	if input == "" {
+		l.pidFilter = ""
+		return l.restart()
+	}
+
+	if isAllDigits(input) {
+		l.pidFilter = input
+		return l.restart()
+	}
+
+	return adb.ResolvePidCmd(l.state.DeviceSerial(), input)
+}
+
+// restart stops the current stream and starts a fresh one with the current filter.
+func (l *Logcat) restart() tea.Cmd {
+	old := l.session
+	l.session = nil
+	l.lines = nil
+	l.running = true
+	l.gotoTop()
+
+	var stopCmd tea.Cmd
+	if old != nil {
+		stopCmd = func() tea.Msg {
+			_ = old.Stop()
+			return nil
+		}
+	}
+	return tea.Batch(stopCmd, adb.StartLogcatCmd(l.state.DeviceSerial(), l.pidFilter))
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func (l *Logcat) View() string {
@@ -149,21 +260,38 @@ func (l *Logcat) View() string {
 		statusLine.WriteString(components.StatusMuted.Render("search: \"" + l.search.Query + "\""))
 	}
 
+	if l.pidFilter != "" {
+		statusLine.WriteString("  ")
+		statusLine.WriteString(components.HelpKeyStyle.Render("pid:" + l.pidFilter))
+	}
+
 	statusLine.WriteString("\n")
 
-	return components.RenderLayoutWithScrollableSection(l.state, components.LayoutWithScrollProps{
+	rendered := components.RenderLayoutWithScrollableSection(l.state, components.LayoutWithScrollProps{
 		Title:             "Logcat",
 		StaticContent:     statusLine.String(),
 		ScrollableContent: body.String(),
 		Footer: components.JoinHelp(
 			[2]string{"c", "clear"},
 			[2]string{"s", "start/stop"},
-			[2]string{"←/→", "filter"},
+			[2]string{"←/→", "level"},
+			[2]string{"p", "pid filter"},
 			[2]string{"/", "search"},
+			[2]string{"w", "save"},
 			[2]string{"esc", "back"},
 		),
 		Viewport: &l.viewport,
 	})
+
+	if l.filterForm.Visible {
+		rendered = components.RenderFormOverlay(rendered, l.filterForm, l.state)
+	}
+
+	if l.toast.Visible {
+		rendered = components.RenderOverlay(rendered, l.toast.View(), l.state)
+	}
+
+	return rendered
 }
 
 /* ---------- helpers ---------- */

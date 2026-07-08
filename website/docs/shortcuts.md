@@ -14,31 +14,86 @@ sidebar_position: 4
 | `↑` `↓` / `k` `j` | Navigate         |
 | `Enter`           | Select / Confirm |
 
+> While typing in a form, search box, or the Input screen, `q` is sent to the field instead of quitting.
+
 ## Dashboard
 | Key | Action              |
 | --- | ------------------- |
 | `d` | Devices             |
-| `m` | Performance Monitor |
+| `i` | Device Info         |
+| `l` | Logcat              |
 | `a` | App Manager         |
 | `f` | File Explorer       |
-| `l` | Logcat              |
-| `i` | Device Info         |
+| `m` | Performance Monitor |
 | `t` | Intent Tester       |
 | `p` | Port Forwarding     |
+| `k` | Input Sender        |
+
+## Devices
+| Key | Action          |
+| --- | --------------- |
+| `w` | Pair wirelessly |
+| `r` | Refresh         |
+| `Enter` | Select device |
 
 ## App Manager
-| Key     | Action               |
-| ------- | -------------------- |
-| `/`     | Search               |
-| `f`     | Filter (User/System) |
-| `s`     | Force Stop           |
-| `x`     | Clear Data           |
-| `u`     | Uninstall            |
-| `Enter` | Launch               |
+| Key     | Action                       |
+| ------- | ---------------------------- |
+| `/`     | Search                       |
+| `←` `→` | Filter (All / User / System) |
+| `Space` | Select / deselect app        |
+| `Enter` / `l` | Launch                 |
+| `i`     | Install APK                  |
+| `e`     | Extract APK to host          |
+| `s`     | Force Stop                   |
+| `x`     | Clear Data                   |
+| `u`     | Uninstall (selected, or current) |
+| `r`     | Reload list                  |
 
 ## File Explorer
-| Key         | Action    |
-| ----------- | --------- |
-| `p`         | Pull File |
-| `d`         | Delete    |
-| `Backspace` | Go Up     |
+| Key         | Action       |
+| ----------- | ------------ |
+| `Enter`     | Open folder  |
+| `Backspace` | Go Up        |
+| `p`         | Pull file    |
+| `u`         | Push file    |
+| `n`         | New folder   |
+| `d`         | Delete       |
+| `r`         | Refresh      |
+
+## Logcat
+| Key     | Action                     |
+| ------- | -------------------------- |
+| `s`     | Start / stop streaming     |
+| `c`     | Clear buffer               |
+| `←` `→` | Cycle log level filter     |
+| `p`     | Filter by package or PID   |
+| `/`     | Search                     |
+| `w`     | Save buffer to a file      |
+
+## Device Info
+| Key | Action               |
+| --- | -------------------- |
+| `c` | Start scrcpy         |
+| `w` | Toggle Wi-Fi         |
+| `s` | Toggle screen        |
+| `p` | Screenshot           |
+| `v` | Start / stop recording |
+| `r` | Reboot               |
+| `R` | Reboot to recovery   |
+| `b` | Reboot to bootloader |
+
+## Performance Monitor
+| Key     | Action          |
+| ------- | --------------- |
+| `↑` `↓` | Scroll          |
+| `Esc`   | Back            |
+
+## Input Sender
+| Key      | Action                          |
+| -------- | ------------------------------- |
+| `Enter`  | Send the typed text             |
+| `Tab`    | Toggle live keystroke capture   |
+| `Ctrl+B` | Send Back                       |
+| `Ctrl+H` | Send Home                       |
+| `Ctrl+R` | Send Recents                    |

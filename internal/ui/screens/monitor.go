@@ -9,6 +9,7 @@ import (
 	"github.com/SakshhamTheCoder/adbt/internal/state"
 	"github.com/SakshhamTheCoder/adbt/internal/ui/components"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -27,13 +28,20 @@ type PerfMonitor struct {
 	txRate     uint64 // bytes per second
 
 	active bool
+	errMsg string
+
+	batt    adb.BatteryThermal
+	battErr string
+
+	viewport viewport.Model
 }
 
 type TickMsg time.Time
 
 func NewPerfMonitor(state *state.AppState) *PerfMonitor {
 	return &PerfMonitor{
-		state: state,
+		state:    state,
+		viewport: viewport.New(0, 0),
 	}
 }
 
@@ -44,6 +52,7 @@ func (m *PerfMonitor) Init() tea.Cmd {
 	m.active = true
 	return tea.Batch(
 		adb.GetSystemStatsCmd(m.state.DeviceSerial()),
+		adb.FetchBatteryThermalCmd(m.state.DeviceSerial()),
 		m.tickCmd(),
 	)
 }
@@ -59,7 +68,11 @@ func (m *PerfMonitor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
-			return m, nil // handled by parent or just stop? Parent handles navigation.
+			return m, nil // parent handles navigation
+		default:
+			var cmd tea.Cmd
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
 		}
 
 	case TickMsg:
@@ -68,14 +81,25 @@ func (m *PerfMonitor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(
 			adb.GetSystemStatsCmd(m.state.DeviceSerial()),
+			adb.FetchBatteryThermalCmd(m.state.DeviceSerial()),
 			m.tickCmd(),
 		)
 
-	case adb.SystemStatsMsg:
+	case adb.BatteryThermalMsg:
 		if msg.Error != nil {
-			// Handle error silently or show toast? For now silent catch up next tick
+			m.battErr = msg.Error.Error()
 			return m, nil
 		}
+		m.battErr = ""
+		m.batt = msg.Data
+
+	case adb.SystemStatsMsg:
+		if msg.Error != nil {
+			// Surface the failure; the next tick will retry and clear it on success.
+			m.errMsg = msg.Error.Error()
+			return m, nil
+		}
+		m.errMsg = ""
 
 		newStats := msg.Stats
 
@@ -156,21 +180,47 @@ func (m *PerfMonitor) View() string {
 		fmt.Sprintf("↓ %s   ↑ %s", rxStr, txStr),
 	)
 
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		"",
-		cpuRow,
-		"",
-		memRow,
-		"",
-		netRow,
-	)
+	rows := []string{"", cpuRow, "", memRow, "", netRow}
+	if m.errMsg != "" {
+		rows = append(rows, "", components.ErrorStyle.Render("Failed to read stats: "+m.errMsg))
+	}
 
-	return components.RenderLayout(
-		m.state,
-		"Performance Monitor",
-		content,
-		components.Help("esc", "back"),
-	)
+	rows = append(rows, "", components.SectionTitle("Battery"))
+	if m.battErr != "" {
+		rows = append(rows, components.StatusMuted.Render("  unavailable: "+m.battErr))
+	} else {
+		b := m.batt
+		rows = append(rows,
+			batteryLine("Level", b.Level),
+			batteryLine("Status", b.Status),
+			batteryLine("Temp", b.Temperature),
+			batteryLine("Voltage", b.Voltage),
+			batteryLine("Health", b.Health),
+			batteryLine("Plugged", b.Plugged),
+		)
+		if len(b.Zones) > 0 {
+			rows = append(rows, "", components.SectionTitle("Thermal"))
+			for _, z := range b.Zones {
+				rows = append(rows, batteryLine(z.Type, z.Temp))
+			}
+		}
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, rows...)
+
+	return components.RenderLayoutWithScrollableSection(m.state, components.LayoutWithScrollProps{
+		Title:             "Performance Monitor",
+		ScrollableContent: content,
+		Footer:            components.Help("esc", "back"),
+		Viewport:          &m.viewport,
+	})
+}
+
+func batteryLine(label, value string) string {
+	if value == "" {
+		value = "—"
+	}
+	return components.StatusMuted.Width(16).Render("  "+label) + value
 }
 
 func renderProgressBar(percent float64, width int, filled, empty lipgloss.Style) string {

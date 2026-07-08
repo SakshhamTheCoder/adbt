@@ -15,11 +15,10 @@ import (
 )
 
 type menuItem struct {
-	key           string
-	label         string
-	description   string
-	action        navigation.Action
-	requireDevice bool
+	key         string
+	label       string
+	description string
+	screen      navigation.Screen
 }
 
 type Dashboard struct {
@@ -35,14 +34,15 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 		state:    appState,
 		viewport: viewport.New(0, 0),
 		menuItems: []menuItem{
-			{"d", "Devices", "View and select connected devices", navigation.ActionDevices, false},
-			{"i", "Device Info", "View device details and controls", navigation.ActionDeviceInfo, true},
-			{"l", "Logcat", "View live device logs", navigation.ActionLogcat, true},
-			{"a", "Apps", "Manage installed applications", navigation.ActionApps, true},
-			{"f", "Files", "Browse device file system", navigation.ActionFiles, true},
-			{"m", "Monitor", "Performance stats (CPU, RAM, Net)", navigation.ActionPerfMonitor, true},
-			{"t", "Intent Tester", "Test deep links and intents", navigation.ActionIntents, true},
-			{"p", "Port Forwarding", "Manage adb port forwarding", navigation.ActionPorts, true},
+			{"d", "Devices", "View and select connected devices", navigation.ScreenDevices},
+			{"i", "Device Info", "View device details and controls", navigation.ScreenDeviceInfo},
+			{"l", "Logcat", "View live device logs", navigation.ScreenLogcat},
+			{"a", "Apps", "Manage installed applications", navigation.ScreenApps},
+			{"f", "Files", "Browse device file system", navigation.ScreenFiles},
+			{"m", "Monitor", "Performance stats (CPU, RAM, Net)", navigation.ScreenPerfMonitor},
+			{"t", "Intent Tester", "Test deep links and intents", navigation.ScreenIntents},
+			{"p", "Port Forwarding", "Manage adb port forwarding", navigation.ScreenPorts},
+			{"k", "Input", "Send text and key events to the device", navigation.ScreenInput},
 		},
 	}
 }
@@ -78,11 +78,11 @@ func (d *Dashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			item := d.menuItems[d.cursor]
-			return d, navigation.ResolveAction(item.action, d.state)
+			return d, navigation.Navigate(item.screen, d.state)
 		default:
 			for _, item := range d.menuItems {
 				if msg.String() == item.key {
-					return d, navigation.ResolveAction(item.action, d.state)
+					return d, navigation.Navigate(item.screen, d.state)
 				}
 			}
 		}
@@ -125,7 +125,7 @@ func (d *Dashboard) View() string {
 				line = "› "
 			}
 
-			disabled := item.requireDevice && !d.state.HasDevice()
+			disabled := navigation.Registry[item.screen].RequireDevice && !d.state.HasDevice()
 
 			paddedLabel := fmt.Sprintf("%-16s", item.label)
 			if i == d.cursor {

@@ -25,10 +25,11 @@ type AppFilter int
 var filterNames = []string{"All", "User", "System"}
 
 type AppManager struct {
-	state   *state.AppState
-	apps    []adb.App
-	loading bool
-	cursor  int
+	state    *state.AppState
+	apps     []adb.App
+	filtered []adb.App // cache of apps after search/filter; rebuilt via applyFilter
+	loading  bool
+	cursor   int
 
 	search components.SearchState
 
@@ -41,13 +42,37 @@ type AppManager struct {
 	pending string
 
 	installForm components.FormModal
+
+	details  map[string]adb.AppDetails // lazily fetched, keyed by package
+	selected map[string]bool           // packages marked for batch actions
 }
+
+type appDetailTickMsg struct{ pkg string }
 
 func NewAppManager(state *state.AppState) *AppManager {
 	return &AppManager{
 		state:    state,
 		viewport: viewport.New(0, 0),
+		details:  map[string]adb.AppDetails{},
+		selected: map[string]bool{},
 	}
+}
+
+// scheduleDetail debounces detail fetches: it waits briefly, then fetches only if
+// the selection still points at the same (uncached) package — so scrolling fast
+// doesn't flood adb with dumpsys calls.
+func (a *AppManager) scheduleDetail() tea.Cmd {
+	app := a.selectedApp()
+	if app == nil {
+		return nil
+	}
+	if _, ok := a.details[app.PackageName]; ok {
+		return nil
+	}
+	pkg := app.PackageName
+	return tea.Tick(250*time.Millisecond, func(time.Time) tea.Msg {
+		return appDetailTickMsg{pkg: pkg}
+	})
 }
 
 func (a *AppManager) Init() tea.Cmd {
@@ -59,8 +84,10 @@ func (a *AppManager) Init() tea.Cmd {
 	return adb.ListAppsCmd(a.state.DeviceSerial())
 }
 
-func (a *AppManager) filteredApps() []adb.App {
-	var filtered []adb.App
+// applyFilter rebuilds the cached filtered list. Call it whenever the app list,
+// search query, or filter type changes.
+func (a *AppManager) applyFilter() {
+	filtered := a.filtered[:0]
 	lowerSearch := strings.ToLower(a.search.Query)
 
 	for _, app := range a.apps {
@@ -84,15 +111,64 @@ func (a *AppManager) filteredApps() []adb.App {
 		filtered = append(filtered, app)
 	}
 
-	return filtered
+	a.filtered = filtered
 }
 
 func (a *AppManager) selectedApp() *adb.App {
-	filtered := a.filteredApps()
-	if len(filtered) == 0 || a.cursor >= len(filtered) {
+	if len(a.filtered) == 0 || a.cursor >= len(a.filtered) {
 		return nil
 	}
-	return &filtered[a.cursor]
+	return &a.filtered[a.cursor]
+}
+
+// CapturingText keeps "q" out of the global quit handler while a form or the
+// search box is active.
+func (a *AppManager) CapturingText() bool {
+	return a.search.Active || a.installForm.Visible
+}
+
+// detailBlock renders the lazily-fetched details for the highlighted app.
+func (a *AppManager) detailBlock() string {
+	app := a.selectedApp()
+	if app == nil {
+		return ""
+	}
+
+	tag := "User app"
+	if app.IsSystem {
+		tag = "System app"
+	}
+
+	info := "loading…"
+	if d, ok := a.details[app.PackageName]; ok {
+		var parts []string
+		if d.VersionName != "" {
+			v := d.VersionName
+			if d.VersionCode != "" {
+				v += " (" + d.VersionCode + ")"
+			}
+			parts = append(parts, v)
+		}
+		if d.Size != "" {
+			parts = append(parts, d.Size)
+		}
+		if d.TargetSdk != "" {
+			parts = append(parts, "SDK "+d.TargetSdk)
+		}
+		if len(parts) == 0 {
+			info = "—"
+		} else {
+			info = strings.Join(parts, "  •  ")
+		}
+	}
+
+	apkStyle := lipgloss.NewStyle().MaxWidth(max(a.state.Width-6, 20)).Foreground(components.FgMuted)
+
+	var b strings.Builder
+	b.WriteString("\n" + components.SectionTitle("Details") + "\n")
+	b.WriteString(components.StatusMuted.Render("  "+tag+"  •  "+info) + "\n")
+	b.WriteString(apkStyle.Render("  "+app.APKPath) + "\n")
+	return b.String()
 }
 
 func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -128,11 +204,24 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case components.ConfirmYesMsg:
 			a.confirm.Hide()
+			serial := a.state.DeviceSerial()
+
+			if a.pending == "uninstall_selected" {
+				var cmds []tea.Cmd
+				for pkg, sel := range a.selected {
+					if sel {
+						cmds = append(cmds, adb.UninstallAppCmd(serial, pkg))
+					}
+				}
+				a.selected = map[string]bool{}
+				a.pending = ""
+				return a, tea.Batch(cmds...)
+			}
+
 			app := a.selectedApp()
 			if app == nil {
 				return a, nil
 			}
-			serial := a.state.DeviceSerial()
 			switch a.pending {
 			case "uninstall":
 				return a, adb.UninstallAppCmd(serial, app.PackageName)
@@ -157,8 +246,25 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case adb.AppsLoadedMsg:
 		a.loading = false
 		a.apps = msg.Apps
+		a.applyFilter()
 		a.cursor = 0
 		a.gotoTop()
+		return a, a.scheduleDetail()
+
+	case appDetailTickMsg:
+		app := a.selectedApp()
+		if app == nil || app.PackageName != msg.pkg {
+			return a, nil
+		}
+		if _, ok := a.details[app.PackageName]; ok {
+			return a, nil
+		}
+		return a, adb.AppDetailsCmd(a.state.DeviceSerial(), app.PackageName, app.APKPath)
+
+	case adb.AppDetailsMsg:
+		if msg.Error == nil {
+			a.details[msg.Pkg] = msg.Details
+		}
 		return a, nil
 
 	case adb.AppsLoadErrorMsg:
@@ -200,13 +306,15 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			before := a.search.Query
 			a.search.HandleKey(msg)
 			if a.search.Query != before {
+				a.applyFilter()
 				a.cursor = 0
 				a.gotoTop()
+				return a, tea.Batch(consumeKeyCmd(), a.scheduleDetail())
 			}
 			return a, consumeKeyCmd()
 		}
 
-		filtered := a.filteredApps()
+		filtered := a.filtered
 
 		switch msg.String() {
 		case "up", "k":
@@ -214,11 +322,32 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.cursor--
 				a.ensureCursorVisible()
 			}
+			return a, a.scheduleDetail()
 
 		case "down", "j":
 			if a.cursor < len(filtered)-1 {
 				a.cursor++
 				a.ensureCursorVisible()
+			}
+			return a, a.scheduleDetail()
+
+		case " ", "space":
+			if app := a.selectedApp(); app != nil {
+				if a.selected[app.PackageName] {
+					delete(a.selected, app.PackageName)
+				} else {
+					a.selected[app.PackageName] = true
+				}
+			}
+
+		case "e":
+			if app := a.selectedApp(); app != nil {
+				var toastCmd tea.Cmd
+				a.toast, toastCmd = components.ShowToast("Extracting APK...", false, 2*time.Second)
+				return a, tea.Batch(
+					toastCmd,
+					adb.ExtractApkCmd(a.state.DeviceSerial(), app.APKPath, app.PackageName),
+				)
 			}
 
 		case "enter", "l":
@@ -236,6 +365,11 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "u":
+			if len(a.selected) > 0 {
+				a.pending = "uninstall_selected"
+				a.confirm.Show(fmt.Sprintf("Uninstall %d selected app(s)?", len(a.selected)))
+				return a, nil
+			}
 			if app := a.selectedApp(); app != nil {
 				if app.IsSystem {
 					var cmd tea.Cmd
@@ -274,17 +408,26 @@ func (a *AppManager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "right":
 			a.filterType = (a.filterType + 1) % 3
+			a.applyFilter()
 			a.cursor = 0
 			a.gotoTop()
+			return a, a.scheduleDetail()
 
 		case "left":
 			a.filterType = (a.filterType + 2) % 3
+			a.applyFilter()
 			a.cursor = 0
 			a.gotoTop()
+			return a, a.scheduleDetail()
 
 		case "esc":
+			if len(a.selected) > 0 {
+				a.selected = map[string]bool{}
+				return a, consumeKeyCmd()
+			}
 			if a.search.Query != "" {
 				a.search.Clear()
+				a.applyFilter()
 				a.cursor = 0
 				a.gotoTop()
 				return a, consumeKeyCmd()
@@ -316,6 +459,11 @@ func (a *AppManager) View() string {
 			staticContent.WriteString(" ")
 		}
 	}
+	if len(a.selected) > 0 {
+		staticContent.WriteString(
+			"  " + components.HelpKeyStyle.Render(fmt.Sprintf("%d selected", len(a.selected))),
+		)
+	}
 	staticContent.WriteString("\n")
 
 	if a.search.Active {
@@ -328,6 +476,8 @@ func (a *AppManager) View() string {
 		)
 	}
 
+	staticContent.WriteString(a.detailBlock())
+
 	maxWidth := max(a.state.Width-8, 20)
 	truncStyle := lipgloss.NewStyle().MaxWidth(maxWidth)
 
@@ -336,7 +486,7 @@ func (a *AppManager) View() string {
 	if a.loading {
 		scrollableContent.WriteString(components.StatusMuted.Render("Loading apps..."))
 	} else {
-		filtered := a.filteredApps()
+		filtered := a.filtered
 
 		if len(filtered) == 0 {
 			scrollableContent.WriteString(components.StatusMuted.Render("No apps found"))
@@ -352,18 +502,25 @@ func (a *AppManager) View() string {
 					tag = components.StatusMuted.Render("[S]")
 				}
 
+				mark := " "
+				if a.selected[app.PackageName] {
+					mark = components.StatusConnected.Render("✓")
+				}
+
 				var line string
 				if i == a.cursor {
 					line = fmt.Sprintf(
-						"%s%s %s",
+						"%s%s %s %s",
 						prefix,
+						mark,
 						tag,
 						components.ListItemSelectedStyle.Render(app.PackageName),
 					)
 				} else {
 					line = fmt.Sprintf(
-						"%s%s %s",
+						"%s%s %s %s",
 						prefix,
+						mark,
 						tag,
 						components.ListItemStyle.Render(app.PackageName),
 					)
@@ -387,8 +544,10 @@ func (a *AppManager) View() string {
 	} else {
 		footer = components.JoinHelp(
 			[2]string{"↑/↓", "navigate"},
+			[2]string{"space", "select"},
 			[2]string{"enter", "launch"},
 			[2]string{"i", "install"},
+			[2]string{"e", "extract"},
 			[2]string{"s", "stop"},
 			[2]string{"u", "uninstall"},
 			[2]string{"x", "clear"},
