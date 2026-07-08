@@ -100,6 +100,8 @@ Once installed, plug in your device and run:
 adbt
 ```
 
+Check which build you're on with `adbt --version`.
+
 | Key | Action |
 | :--- | :--- |
 | `q` / `Ctrl+C` | Quit `adbt` |

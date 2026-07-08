@@ -38,3 +38,5 @@ We provide `.deb` and `.rpm` files for various Linux distributions.
 Download the appropriate file for your system from the [Releases Page](https://github.com/SakshhamTheCoder/adbt/releases).
 
 Once installed, simply type `adbt` in your terminal anytime your device is plugged in or connected over Wi-Fi!
+
+To confirm which build you have, run `adbt --version`.
