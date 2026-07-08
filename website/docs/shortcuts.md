@@ -97,3 +97,17 @@ sidebar_position: 4
 | `Ctrl+B` | Send Back                       |
 | `Ctrl+H` | Send Home                       |
 | `Ctrl+R` | Send Recents                    |
+
+## Intent Tester
+| Key     | Action                        |
+| ------- | ----------------------------- |
+| `n`     | New intent                    |
+| `←` `→` | Mode (Activity / Broadcast)   |
+
+## Port Forwarding
+| Key     | Action                     |
+| ------- | -------------------------- |
+| `a`     | Add forward                |
+| `d`     | Remove selected forward    |
+| `←` `→` | Mode (Forward / Reverse)   |
+| `r`     | Refresh                    |
