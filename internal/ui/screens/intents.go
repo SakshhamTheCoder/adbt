@@ -175,7 +175,6 @@ func (i *Intents) View() string {
 
 	var staticContent strings.Builder
 
-
 	staticContent.WriteString("  ")
 	for idx, name := range intentModeNames {
 		if intentMode(idx) == i.mode {
