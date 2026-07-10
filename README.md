@@ -28,13 +28,14 @@ For detailed guides, shortcuts, and troubleshooting, visit the [adbt Documentati
 
 ## ⚡ Core Features
 
-- **Device Management**: Real-time connected device detection, wireless pairing (QR code logic/PIN), detailed device info, and power/reboot controls.
+- **Device Management**: Real-time connected device detection, wireless pairing over IP/port/PIN, and automatic selection when a single device is attached.
+- **Device Info**: Model, serial, Android version, battery, storage, screen size/density, and IP address, plus Wi-Fi and screen toggles and reboot controls (device, recovery, bootloader).
 - **Scrcpy Integration**: Launch high-performance screen mirroring with a single keypress.
 - **Screen Capture**: Take screenshots and record the screen straight from Device Info, saved to your host machine.
-- **Performance Monitor**: Real-time CPU, memory, and network usage, plus live battery and thermal readouts.
-- **App Manager**: Browse, search, and filter user/system apps; inspect per-app details (version, size, target SDK); multi-select for batch uninstall; install or extract APKs; and launch, force-stop, or clear data.
+- **Performance Monitor**: Real-time CPU, memory, and network usage, plus live battery level, temperature, voltage, and health readouts.
+- **App Manager**: Browse, search, and filter user/system apps; inspect per-app details (version, size, target SDK, APK path); multi-select for batch uninstall; install or extract APKs; and launch, force-stop, or clear data.
 - **File Explorer**: Browse the device filesystem, push and pull files, create directories, and delete with confirmation.
-- **Logcat Viewer**: Live stream device logs with severity filters, text search highlighting, filtering by package/PID, and one-key save to a file.
+- **Logcat Viewer**: Live stream device logs with severity filters, text search highlighting, filtering by package/PID, pause/resume, clear, and one-key save to a file.
 - **Input Sender**: Type text and send key events (Back, Home, Recents, arrows, and more) to the device, with an optional live keystroke-forwarding mode.
 - **Intent Tester**: Construct and send custom activity/broadcast intents to test deep links and receiver behavior.
 - **Port Forwarding**: Easily configure forward and reverse network connections between your host and device.
@@ -45,23 +46,23 @@ For detailed guides, shortcuts, and troubleshooting, visit the [adbt Documentati
 
 | Dashboard | Device Info |
 | :---: | :---: |
-| ![Dashboard](website/static/img/screenshots/dashboard_2.png) | ![Device Info](website/static/img/screenshots/device_info_2.png) |
+| ![Dashboard](website/static/img/screenshots/dashboard.png) | ![Device Info](website/static/img/screenshots/device_info.png) |
 
 | App Manager | File Explorer |
 | :---: | :---: |
-| ![App Manager](website/static/img/screenshots/app_manager_2.png) | ![File Explorer](website/static/img/screenshots/file_explorer_2.png) |
+| ![App Manager](website/static/img/screenshots/app_manager.png) | ![File Explorer](website/static/img/screenshots/file_explorer.png) |
 
 | Logcat Viewer | Performance Monitor |
 | :---: | :---: |
-| ![Logcat](website/static/img/screenshots/logcat_2.png) | ![Performance](website/static/img/screenshots/performance_2.png) |
+| ![Logcat](website/static/img/screenshots/logcat.png) | ![Performance](website/static/img/screenshots/performance.png) |
 
-| Intent Tester | Port Forwarding |
+| Input Sender | Intent Tester |
 | :---: | :---: |
-| ![Intent Tester](website/static/img/screenshots/intent_tester.png) | ![Port Forwarding](website/static/img/screenshots/port_manager.png) |
+| ![Input Sender](website/static/img/screenshots/input.png) | ![Intent Tester](website/static/img/screenshots/intent_tester.png) |
 
-<!-- TODO(screenshots): the App Manager (detail pane + multi-select), Performance Monitor (battery/thermal),
-     Device Info (screenshot/record), and File Explorer (push/new folder) shots above predate those features
-     and should be refreshed. Add an Input Sender screenshot at website/static/img/screenshots/input.png. -->
+| Port Forwarding | |
+| :---: | :---: |
+| ![Port Forwarding](website/static/img/screenshots/port_manager.png) | |
 
 </details>
 
@@ -100,7 +101,7 @@ Once installed, plug in your device and run:
 adbt
 ```
 
-Check which build you're on with `adbt --version`.
+Check which build you're on with `adbt --version` (or `adbt -v`). `adbt` requires `adb` on your `PATH` and exits with install instructions if it is missing.
 
 | Key | Action |
 | :--- | :--- |
