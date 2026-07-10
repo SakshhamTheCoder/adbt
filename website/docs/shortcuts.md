@@ -29,9 +29,12 @@ sidebar_position: 4
 | `p` | Port Forwarding     |
 | `s` | Input Sender        |
 
+> Every screen returns to the Dashboard with `Esc`. On screens with a search box, filter, or open form, the first `Esc` closes that instead.
+
 ## Devices
 | Key | Action          |
 | --- | --------------- |
+| `↑` `↓` / `k` `j` | Navigate |
 | `w` | Pair wirelessly |
 | `r` | Refresh         |
 | `Enter` | Select device |
@@ -39,6 +42,7 @@ sidebar_position: 4
 ## App Manager
 | Key     | Action                       |
 | ------- | ---------------------------- |
+| `↑` `↓` / `k` `j` | Navigate           |
 | `/`     | Search                       |
 | `←` `→` | Filter (All / User / System) |
 | `Space` | Select / deselect app        |
@@ -53,6 +57,7 @@ sidebar_position: 4
 ## File Explorer
 | Key         | Action       |
 | ----------- | ------------ |
+| `↑` `↓` / `k` `j` | Navigate |
 | `Enter`     | Open folder  |
 | `Backspace` | Go Up        |
 | `p`         | Pull file    |
@@ -74,6 +79,8 @@ sidebar_position: 4
 ## Device Info
 | Key | Action               |
 | --- | -------------------- |
+| `↑` `↓` / `k` `j` | Navigate actions |
+| `Enter` | Run highlighted action |
 | `c` | Start scrcpy         |
 | `w` | Toggle Wi-Fi         |
 | `s` | Toggle screen        |
@@ -93,10 +100,13 @@ sidebar_position: 4
 | Key      | Action                          |
 | -------- | ------------------------------- |
 | `Enter`  | Send the typed text             |
+| `Backspace` | Delete the last character    |
 | `Tab`    | Toggle live keystroke capture   |
 | `Ctrl+B` | Send Back                       |
 | `Ctrl+H` | Send Home                       |
 | `Ctrl+R` | Send Recents                    |
+
+> In live capture mode every keystroke is forwarded to the device as you press it, including `Enter`, `Backspace`, and the arrow keys.
 
 ## Intent Tester
 | Key     | Action                        |
@@ -107,6 +117,7 @@ sidebar_position: 4
 ## Port Forwarding
 | Key     | Action                     |
 | ------- | -------------------------- |
+| `↑` `↓` / `k` `j` | Navigate         |
 | `a`     | Add forward                |
 | `d`     | Remove selected forward    |
 | `←` `→` | Mode (Forward / Reverse)   |

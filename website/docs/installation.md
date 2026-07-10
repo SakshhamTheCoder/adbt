@@ -6,6 +6,10 @@ sidebar_position: 2
 
 To install `adbt`, grab a pre-built binary for your operating system or compile it yourself.
 
+## Prerequisites
+
+`adbt` drives the Android Debug Bridge, so `adb` must be installed and on your `PATH`. If it is missing, `adbt` exits immediately with a link to the platform-tools download. Screen mirroring additionally requires [`scrcpy`](https://github.com/Genymobile/scrcpy) on your host.
+
 ## macOS / Linux (Homebrew)
 
 ```bash
@@ -39,4 +43,4 @@ Download the appropriate file for your system from the [Releases Page](https://g
 
 Once installed, simply type `adbt` in your terminal anytime your device is plugged in or connected over Wi-Fi!
 
-To confirm which build you have, run `adbt --version`.
+To confirm which build you have, run `adbt --version` (or `adbt -v`).
