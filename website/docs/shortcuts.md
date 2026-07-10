@@ -27,7 +27,7 @@ sidebar_position: 4
 | `m` | Performance Monitor |
 | `t` | Intent Tester       |
 | `p` | Port Forwarding     |
-| `k` | Input Sender        |
+| `s` | Input Sender        |
 
 ## Devices
 | Key | Action          |

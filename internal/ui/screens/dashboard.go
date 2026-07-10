@@ -42,7 +42,7 @@ func NewDashboard(appState *state.AppState) *Dashboard {
 			{"m", "Monitor", "Performance stats (CPU, RAM, Net)", navigation.ScreenPerfMonitor},
 			{"t", "Intent Tester", "Test deep links and intents", navigation.ScreenIntents},
 			{"p", "Port Forwarding", "Manage adb port forwarding", navigation.ScreenPorts},
-			{"k", "Input", "Send text and key events to the device", navigation.ScreenInput},
+			{"s", "Input", "Send text and key events to the device", navigation.ScreenInput},
 		},
 	}
 }
